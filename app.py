@@ -1,508 +1,745 @@
+"""
+Sistema de Suporte Mavi - Streamlit
+Aplicação principal do sistema de gerenciamento de tickets
+"""
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
-import os
-import sys
-
-# Adiciona o diretório src ao path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-
-from database import FilaManager
-from notifications import EmailNotifier, SMSNotifier
-from reports import ReportGenerator
-from styles_mavi_updated import apply_custom_styling, get_custom_components
-from config.config import app_config, email_config, sms_config
+import plotly.express as px
+import plotly.graph_objects as go
+from database import get_database_managers
+from admin import show_admin_page
+from email_service import get_email_service
+from reports import get_report_generator
+from typing import Dict, Any
 
 # Configuração da página
 st.set_page_config(
     page_title="Mavi Suporte",
+    page_icon="mavi.logo.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Aplica estilos customizados
-apply_custom_styling()
-
-# Inicializa componentes
-@st.cache_resource
-def init_components():
-    """Inicializa os componentes do sistema"""
-    fila_manager = FilaManager(app_config.fila_file)
-    email_notifier = EmailNotifier(
-        email_config.smtp_server,
-        email_config.smtp_port,
-        email_config.sender_email,
-        email_config.sender_password
-    )
-    sms_notifier = SMSNotifier(
-        sms_config.account_sid,
-        sms_config.auth_token,
-        sms_config.from_number
-    )
-    report_generator = ReportGenerator(
-        app_config.fila_file,
-        app_config.relatorios_dir
-    )
-    return fila_manager, email_notifier, sms_notifier, report_generator
-
-# Inicializa componentes
-fila_manager, email_notifier, sms_notifier, report_generator = init_components()
-
-def main():
-    """Função principal do aplicativo"""
+# CSS customizado para o layout moderno da Mavi
+def apply_custom_css():
+    """Aplica CSS customizado com as cores da Mavi"""
+    st.markdown("""
+    <style>
+    /* Cores principais da Mavi */
+    :root {
+        --mavi-green: #00D4AA;
+        --mavi-dark-green: #00B894;
+        --mavi-light-green: #00E5BB;
+        --mavi-bg: #f8f9fa;
+        --mavi-text: #2c3e50;
+    }
     
-    # Header customizado
-    components = get_custom_components()
-    st.markdown(components['header'], unsafe_allow_html=True)
+    /* Header customizado */
+    .main-header {
+        background: linear-gradient(90deg, var(--mavi-green), var(--mavi-dark-green));
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
     
-    # Logo
+    /* Logo container */
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 1rem 0;
+    }
+    
+    /* Cards customizados */
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid var(--mavi-green);
+        margin: 0.5rem 0;
+    }
+    
+    /* Formulário */
+    .form-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 1rem 0;
+    }
+    
+    /* Botões customizados */
+    .stButton > button {
+        background: linear-gradient(90deg, var(--mavi-green), var(--mavi-dark-green));
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: linear-gradient(90deg, var(--mavi-dark-green), var(--mavi-green));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Sidebar */
+    .css-1d391kg {
+        background: linear-gradient(180deg, var(--mavi-light-green), var(--mavi-green));
+    }
+    
+    /* Métricas */
+    .metric-container {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        margin: 0.5rem 0;
+    }
+    
+    /* Alertas de sucesso */
+    .success-alert {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 1rem;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    
+    /* Tabelas */
+    .dataframe {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Progress bar customizada */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, var(--mavi-green), var(--mavi-dark-green));
+    }
+    
+    /* Esconder elementos do Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .main-header {
+            padding: 0.5rem;
+        }
+        
+        .form-container {
+            padding: 1rem;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def show_header():
+    """Exibe o cabeçalho principal"""
+    
+    st.image("mavi.logo.png", width=300)
+def show_logo():
+    """Exibe o logo da Mavi"""
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         try:
-            st.image("https://i.imgur.com/L84xeQI.png", width=300)
+            st.image("mavi.logo.png", width=300)
         except:
-            st.write("🎯 **Logo Mavi**")
-    
-    # Sidebar para navegação
-    with st.sidebar:
-        st.title("📋 Menu")
-        page = st.selectbox(
-            "Selecione uma opção:",
-            ["🎫 Nova Solicitação", "📊 Dashboard", "📈 Relatórios", "⚙️ Administração"]
-        )
-    
-    # Roteamento de páginas
-    if page == "🎫 Nova Solicitação":
-        page_nova_solicitacao()
-    elif page == "📊 Dashboard":
-        page_dashboard()
-    elif page == "📈 Relatórios":
-        page_relatorios()
-    elif page == "⚙️ Administração":
-        page_administracao()
+            st.markdown("""
+            <div style="text-align: center; padding: 2rem;">
+                <h2 style="color: #00D4AA;">🎯 MAVI</h2>
+                <p style="color: #666;">Logo da empresa</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-def page_nova_solicitacao():
-    """Página para criar nova solicitação"""
-    st.markdown(get_custom_components()['form_container_start'], unsafe_allow_html=True)
+def init_session_state():
+    """Inicializa o estado da sessão"""
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+    if 'user' not in st.session_state:
+        st.session_state.user = None
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "🏠 Início"
+
+def show_login_page():
+    """Exibe a página de login"""
+    show_header()
+    show_logo()
     
-    st.subheader("📝 Nova Solicitação de Suporte")
-    st.write("Preencha os dados abaixo para criar sua solicitação:")
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
     
-    with st.form("suporte_form", clear_on_submit=True):
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.subheader("🔐 Login do Sistema")
+        st.write("Faça login para acessar o sistema de suporte")
+        
+        with st.form("login_form"):
+            username = st.text_input("👤 Usuário", placeholder="Digite seu usuário")
+            password = st.text_input("🔒 Senha", type="password", placeholder="Digite sua senha")
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                login_button = st.form_submit_button("🚀 Entrar", use_container_width=True)
+            with col_b:
+                guest_button = st.form_submit_button("👥 Acesso Público", use_container_width=True)
+            
+            if login_button and username and password:
+                # Obtém gerenciadores
+                _, _, user_manager = get_database_managers()
+                
+                # Autentica usuário
+                user = user_manager.autenticar_usuario(username, password)
+                
+                if user:
+                    st.session_state.authenticated = True
+                    st.session_state.user = user
+                    st.success(f"✅ Bem-vindo, {user['username']}!")
+                    st.rerun()
+                else:
+                    st.error("❌ Usuário ou senha incorretos!")
+            
+            elif guest_button:
+                # Acesso público (sem login)
+                st.session_state.authenticated = True
+                st.session_state.user = {
+                    "username": "público",
+                    "role": "guest",
+                    "email": "publico@mavi.com"
+                }
+                st.success("✅ Acesso público autorizado!")
+                st.rerun()
+        
+        # Informações de login
+        st.markdown("---")
+        st.info("""
+        **Contas de Teste:**
+        - **Admin**: admin / admin123
+        - **Usuário**: teste / teste123
+        - **Público**: Clique em "Acesso Público"
+        """)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_navigation():
+    """Exibe a navegação lateral"""
+    with st.sidebar:
+        st.markdown(f"### 👋 Olá, {st.session_state.user['username']}!")
+        
+        # Opções baseadas no perfil do usuário
+        if st.session_state.user['role'] == 'admin':
+            pages = [
+                "🏠 Início",
+                "🎫 Nova Solicitação", 
+                "🔍 Consultar Ticket",
+                "📊 Dashboard",
+                "📈 Relatórios",
+                "⚙️ Administração"
+            ]
+        elif st.session_state.user['role'] == 'user':
+            pages = [
+                "🏠 Início",
+                "🎫 Nova Solicitação",
+                "🔍 Consultar Ticket", 
+                "📊 Dashboard"
+            ]
+        else:  # guest
+            pages = [
+                "🏠 Início",
+                "🎫 Nova Solicitação",
+                "🔍 Consultar Ticket",
+                "📊 Dashboard"
+            ]
+        
+        selected_page = st.selectbox("📋 Navegação", pages, key="navigation")
+        st.session_state.current_page = selected_page
+        
+        st.markdown("---")
+        
+        # Informações do usuário
+        st.markdown(f"""
+        **Perfil:** {st.session_state.user['role'].title()}  
+        **Email:** {st.session_state.user['email']}
+        """)
+        
+        if st.button("🚪 Sair", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.user = None
+            st.rerun()
+
+def show_home_page():
+    """Exibe a página inicial"""
+    show_header()
+    
+    # Estatísticas rápidas
+    _, ticket_manager, _ = get_database_managers()
+    stats = ticket_manager.obter_estatisticas()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="metric-container">
+            <h3 style="color: #00D4AA;">📋</h3>
+            <h2>{stats['total_tickets']}</h2>
+            <p>Total de Tickets</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-container">
+            <h3 style="color: #ffc107;">⏳</h3>
+            <h2>{stats['pendentes']}</h2>
+            <p>Pendentes</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class="metric-container">
+            <h3 style="color: #17a2b8;">🔄</h3>
+            <h2>{stats['em_andamento']}</h2>
+            <p>Em Andamento</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div class="metric-container">
+            <h3 style="color: #28a745;">✅</h3>
+            <h2>{stats['concluidos']}</h2>
+            <p>Concluídos</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Ações rápidas
+    st.markdown("### 🚀 Ações Rápidas")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🎫 Criar Novo Ticket", use_container_width=True):
+            st.session_state.current_page = "🎫 Nova Solicitação"
+            st.rerun()
+    
+    with col2:
+        if st.button("🔍 Consultar Ticket", use_container_width=True):
+            st.session_state.current_page = "🔍 Consultar Ticket"
+            st.rerun()
+    
+    with col3:
+        if st.button("📊 Ver Dashboard", use_container_width=True):
+            st.session_state.current_page = "📊 Dashboard"
+            st.rerun()
+    
+    # Informações do sistema
+    st.markdown("### ℹ️ Sobre o Sistema")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.info("""
+        **Sistema de Suporte Mavi**
+        
+        - ✅ Criação de tickets
+        - ✅ Acompanhamento em tempo real
+        - ✅ Relatórios e estatísticas
+        - ✅ Notificações por email
+        - ✅ Interface moderna e responsiva
+        """)
+    
+    with col2:
+        st.success("""
+        **Como Usar:**
+        
+        1. 🎫 Crie uma nova solicitação
+        2. 📧 Receba confirmação por email
+        3. 🔍 Acompanhe o status do ticket
+        4. 📊 Visualize estatísticas no dashboard
+        5. ✅ Receba notificação quando concluído
+        """)
+
+def show_new_ticket_page():
+    """Exibe a página de nova solicitação"""
+    st.subheader("🎫 Nova Solicitação de Suporte")
+    
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    
+    # Dispositivos disponíveis
+    dispositivos_opcoes = [
+        "Notebook/Laptop",
+        "Desktop/PC",
+        "Monitor",
+        "Teclado",
+        "Mouse",
+        "Headset/Fone",
+        "Webcam",
+        "Impressora",
+        "Scanner",
+        "Tablet",
+        "Smartphone",
+        "Acesso VPN",
+        "Software específico",
+        "Licença de software",
+        "Acesso a sistema",
+        "Configuração de email",
+        "Suporte técnico geral",
+        "Outros"
+    ]
+    
+    with st.form("ticket_form", clear_on_submit=False):
         col1, col2 = st.columns(2)
         
         with col1:
-            data_solicitacao = st.date_input(
-                "📅 Data da Solicitação",
-                value=date.today(),
-                help="Data em que a solicitação está sendo feita"
-            )
-            
             nome = st.text_input(
-                "👤 Nome Completo",
-                placeholder="Digite seu nome completo"
+                "👤 Nome Completo *",
+                placeholder="Digite seu nome completo",
+                value=st.session_state.get('form_nome', '')
             )
             
             email = st.text_input(
-                "📧 E-mail",
-                placeholder="seu.email@empresa.com"
+                "📧 E-mail *",
+                placeholder="seu.email@empresa.com",
+                value=st.session_state.get('form_email', '')
             )
             
-            telefone = st.text_input(
-                "📱 Telefone (opcional)",
-                placeholder="+55 (11) 99999-9999",
-                help="Para receber notificações por SMS"
+            squad_leader = st.text_input(
+                "👥 Squad Leader *",
+                placeholder="Nome do seu squad leader",
+                value=st.session_state.get('form_squad_leader', '')
             )
         
         with col2:
-            squad_leader = st.text_input(
-                "👥 Squad Leader",
-                placeholder="Nome do seu squad leader"
-            )
-            
             prioridade = st.selectbox(
-                "⚡ Prioridade",
+                "⚡ Prioridade *",
                 ["Normal", "Alta", "Urgente"],
-                help="Selecione a prioridade da sua solicitação"
+                index=["Normal", "Alta", "Urgente"].index(st.session_state.get('form_prioridade', 'Normal'))
             )
             
             dispositivos = st.multiselect(
-                "💻 Dispositivos/Serviços Solicitados",
-                app_config.dispositivos_opcoes,
-                help="Selecione um ou mais itens"
+                "💻 Dispositivos/Serviços Solicitados *",
+                dispositivos_opcoes,
+                default=st.session_state.get('form_dispositivos', [])
             )
         
         necessidade = st.text_area(
-            "📋 Descrição Detalhada da Necessidade",
+            "📋 Descrição Detalhada da Necessidade *",
             placeholder="Descreva detalhadamente sua necessidade, incluindo contexto e urgência...",
-            height=100
+            height=120,
+            value=st.session_state.get('form_necessidade', '')
         )
         
-        # Checkbox para aceitar termos
         aceita_termos = st.checkbox(
-            "Aceito que meus dados sejam utilizados para processamento da solicitação"
+            "Aceito que meus dados sejam utilizados para processamento da solicitação *",
+            value=st.session_state.get('form_aceita_termos', False)
         )
         
-        submitted = st.form_submit_button("🚀 Enviar Solicitação")
+        submitted = st.form_submit_button("🚀 Enviar Solicitação", use_container_width=True)
         
         if submitted:
+            # Salva dados no session_state para persistência
+            st.session_state.form_nome = nome
+            st.session_state.form_email = email
+            st.session_state.form_squad_leader = squad_leader
+            st.session_state.form_prioridade = prioridade
+            st.session_state.form_dispositivos = dispositivos
+            st.session_state.form_necessidade = necessidade
+            st.session_state.form_aceita_termos = aceita_termos
+            
+            # Validação
             if not all([nome, email, squad_leader, dispositivos]) or not aceita_termos:
                 st.error("❌ Por favor, preencha todos os campos obrigatórios e aceite os termos.")
             else:
-                # Prepara dados
-                dados_solicitacao = {
-                    'data_solicitacao': data_solicitacao.strftime("%Y-%m-%d"),
-                    'nome': nome,
-                    'email': email,
-                    'telefone': telefone,
-                    'squad_leader': squad_leader,
-                    'dispositivos': ', '.join(dispositivos),
-                    'necessidade': necessidade,
-                    'prioridade': prioridade
+                # Cria o ticket
+                _, ticket_manager, _ = get_database_managers()
+                
+                dados_ticket = {
+                    "nome": nome,
+                    "email": email,
+                    "squad_leader": squad_leader,
+                    "dispositivos": ", ".join(dispositivos),
+                    "necessidade": necessidade,
+                    "prioridade": prioridade
                 }
                 
-                # Adiciona à fila
-                ticket_id = fila_manager.adicionar_solicitacao(dados_solicitacao)
-                posicao_fila = fila_manager.obter_posicao_fila(ticket_id)
+                ticket_id = ticket_manager.criar_ticket(dados_ticket)
                 
-                # Exibe sucesso
-                st.success(f"✅ Solicitação criada com sucesso!")
-                
-                # Métricas do ticket
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("🎫 Ticket", f"#{ticket_id}")
-                with col2:
-                    st.metric("📍 Posição na Fila", posicao_fila)
-                with col3:
-                    st.metric("⏱️ Status", "Pendente")
-                
-                # Progress bar
-                progress_value = min(posicao_fila / app_config.max_fila_size, 1.0)
-                st.progress(1 - progress_value)
-                st.caption(f"Sua solicitação está na posição {posicao_fila} da fila")
-                
-                # Envio de notificações
-                with st.spinner("📧 Enviando notificações..."):
-                    # Email
-                    email_enviado = email_notifier.enviar_confirmacao_ticket(
-                        email, ticket_id, posicao_fila
-                    )
+                if ticket_id:
+                    posicao_fila = ticket_manager.obter_posicao_fila(ticket_id)
                     
-                    # SMS (se telefone fornecido)
-                    sms_enviado = False
-                    if telefone:
-                        sms_enviado = sms_notifier.enviar_sms_ticket(
-                            telefone, ticket_id, posicao_fila
+                    # Envia emails
+                    email_service = get_email_service()
+                    
+                    if email_service.enabled:
+                        # Email para o usuário
+                        email_enviado = email_service.enviar_confirmacao_ticket(
+                            email, ticket_id, posicao_fila, dados_ticket
                         )
-                
-                # Status das notificações
-                if email_enviado:
-                    st.info("📧 E-mail de confirmação enviado!")
+                        
+                        # Email para o admin
+                        admin_notificado = email_service.enviar_notificacao_admin(
+                            ticket_id, dados_ticket
+                        )
+                    else:
+                        email_enviado = False
+                        admin_notificado = False
+                    
+                    # Limpa o formulário
+                    for key in ['form_nome', 'form_email', 'form_squad_leader', 
+                               'form_prioridade', 'form_dispositivos', 'form_necessidade', 
+                               'form_aceita_termos']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    
+                    st.success("✅ Solicitação criada com sucesso!")
+                    
+                    # Exibe informações do ticket
+                    col_a, col_b, col_c = st.columns(3)
+                    with col_a:
+                        st.metric("🎫 Ticket", f"#{ticket_id}")
+                    with col_b:
+                        st.metric("📍 Posição na Fila", posicao_fila)
+                    with col_c:
+                        st.metric("⏱️ Status", "Pendente")
+                    
+                    # Progress bar
+                    if posicao_fila > 0:
+                        progress_value = max(0, min(1, (10 - posicao_fila) / 10))
+                        st.progress(progress_value)
+                        st.caption(f"Sua solicitação está na posição {posicao_fila} da fila")
+                    
+                    # Status dos emails
+                    if email_service.enabled:
+                        if email_enviado:
+                            st.info("📧 Email de confirmação enviado!")
+                        else:
+                            st.warning("⚠️ Não foi possível enviar o email de confirmação")
+                        
+                        if admin_notificado:
+                            st.info("🔔 Administrador notificado!")
+                    else:
+                        st.info("📧 Configure a senha do email para ativar notificações automáticas")
+                    
                 else:
-                    st.warning("⚠️ Não foi possível enviar o e-mail. Verifique as configurações.")
-                
-                if telefone and sms_enviado:
-                    st.info("📱 SMS de confirmação enviado!")
-                elif telefone and not sms_enviado:
-                    st.warning("⚠️ Não foi possível enviar o SMS.")
+                    st.error("❌ Erro ao criar solicitação. Tente novamente.")
     
-    st.markdown(get_custom_components()['form_container_end'], unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def page_dashboard():
-    """Página do dashboard com estatísticas"""
+def show_search_ticket_page():
+    """Exibe a página de consulta de ticket"""
+    st.subheader("🔍 Consultar Ticket")
+    
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.write("Digite o ID do seu ticket para consultar o status:")
+        
+        ticket_id = st.text_input(
+            "🎫 ID do Ticket",
+            placeholder="Ex: ABC12345",
+            help="O ID do ticket foi enviado por email quando você criou a solicitação"
+        ).upper()
+        
+        if st.button("🔍 Consultar", use_container_width=True):
+            if ticket_id:
+                _, ticket_manager, _ = get_database_managers()
+                ticket = ticket_manager.obter_ticket(ticket_id)
+                
+                if ticket:
+                    st.success(f"✅ Ticket #{ticket_id} encontrado!")
+                    
+                    # Informações do ticket
+                    col_a, col_b = st.columns(2)
+                    
+                    with col_a:
+                        st.markdown("**Informações do Ticket:**")
+                        st.write(f"**ID:** #{ticket['ticket_id']}")
+                        st.write(f"**Status:** {ticket['status']}")
+                        st.write(f"**Prioridade:** {ticket['prioridade']}")
+                        st.write(f"**Data:** {ticket['data_criacao'].strftime('%d/%m/%Y %H:%M')}")
+                    
+                    with col_b:
+                        st.markdown("**Dados do Solicitante:**")
+                        st.write(f"**Nome:** {ticket['nome']}")
+                        st.write(f"**Email:** {ticket['email']}")
+                        st.write(f"**Squad Leader:** {ticket['squad_leader']}")
+                    
+                    # Detalhes da solicitação
+                    st.markdown("**Dispositivos/Serviços:**")
+                    st.write(ticket['dispositivos'])
+                    
+                    st.markdown("**Descrição:**")
+                    st.write(ticket['necessidade'])
+                    
+                    # Observações (se houver)
+                    if ticket.get('observacoes'):
+                        st.markdown("**Observações:**")
+                        for obs in ticket['observacoes']:
+                            st.write(f"- {obs['data'].strftime('%d/%m/%Y %H:%M')}: {obs['texto']}")
+                    
+                    # Posição na fila (se pendente)
+                    if ticket['status'] == 'Pendente':
+                        posicao = ticket_manager.obter_posicao_fila(ticket_id)
+                        if posicao > 0:
+                            st.info(f"📍 Posição na fila: {posicao}º")
+                
+                else:
+                    st.error("❌ Ticket não encontrado. Verifique o ID e tente novamente.")
+            else:
+                st.warning("⚠️ Por favor, digite o ID do ticket.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_dashboard_page():
+    """Exibe a página do dashboard"""
     st.subheader("📊 Dashboard de Suporte")
     
-    # Obtém estatísticas
-    stats = fila_manager.obter_estatisticas()
+    _, ticket_manager, _ = get_database_managers()
+    
+    # Estatísticas
+    stats = ticket_manager.obter_estatisticas()
+    tickets = ticket_manager.listar_tickets()
     
     # Métricas principais
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(
-            "📋 Total de Tickets",
-            stats['total_solicitacoes'],
-            help="Número total de solicitações registradas"
-        )
-    
+        st.metric("📋 Total de Tickets", stats['total_tickets'])
     with col2:
-        st.metric(
-            "⏳ Pendentes",
-            stats['pendentes'],
-            help="Tickets aguardando atendimento"
-        )
-    
+        st.metric("⏳ Pendentes", stats['pendentes'])
     with col3:
-        st.metric(
-            "🔄 Em Andamento",
-            stats['em_andamento'],
-            help="Tickets sendo processados"
-        )
-    
+        st.metric("🔄 Em Andamento", stats['em_andamento'])
     with col4:
-        st.metric(
-            "✅ Concluídos",
-            stats['concluidas'],
-            help="Tickets finalizados"
-        )
+        st.metric("✅ Concluídos", stats['concluidos'])
     
     # Gráficos
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📈 Status dos Tickets")
-        if stats['total_solicitacoes'] > 0:
-            chart_data = pd.DataFrame({
+    if stats['total_tickets'] > 0:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📈 Status dos Tickets")
+            
+            # Gráfico de pizza para status
+            status_data = {
                 'Status': ['Pendentes', 'Em Andamento', 'Concluídos'],
-                'Quantidade': [stats['pendentes'], stats['em_andamento'], stats['concluidas']]
-            })
-            st.bar_chart(chart_data.set_index('Status'))
+                'Quantidade': [stats['pendentes'], stats['em_andamento'], stats['concluidos']]
+            }
+            
+            fig_status = px.pie(
+                values=status_data['Quantidade'],
+                names=status_data['Status'],
+                color_discrete_sequence=['#ffc107', '#17a2b8', '#28a745']
+            )
+            fig_status.update_layout(height=400)
+            st.plotly_chart(fig_status, use_container_width=True)
+        
+        with col2:
+            st.subheader("💻 Top 5 Dispositivos")
+            
+            if stats['dispositivos_mais_solicitados']:
+                # Gráfico de barras para dispositivos
+                dispositivos_items = list(stats['dispositivos_mais_solicitados'].items())[:5]
+                
+                if dispositivos_items:
+                    dispositivos_df = pd.DataFrame(
+                        dispositivos_items,
+                        columns=['Dispositivo', 'Quantidade']
+                    )
+                    
+                    fig_dispositivos = px.bar(
+                        dispositivos_df,
+                        x='Quantidade',
+                        y='Dispositivo',
+                        orientation='h',
+                        color_discrete_sequence=['#00D4AA']
+                    )
+                    fig_dispositivos.update_layout(height=400)
+                    st.plotly_chart(fig_dispositivos, use_container_width=True)
+                else:
+                    st.info("Nenhum dispositivo solicitado ainda.")
+            else:
+                st.info("Nenhum dispositivo solicitado ainda.")
+        
+        # Timeline de tickets (se houver dados suficientes)
+        if len(tickets) > 1:
+            st.subheader("📅 Timeline de Criação de Tickets")
+            
+            # Agrupa tickets por data
+            df_tickets = pd.DataFrame(tickets)
+            df_tickets['data'] = pd.to_datetime(df_tickets['data_criacao']).dt.date
+            timeline_data = df_tickets.groupby('data').size().reset_index(name='quantidade')
+            
+            fig_timeline = px.line(
+                timeline_data,
+                x='data',
+                y='quantidade',
+                title='Tickets criados por dia',
+                color_discrete_sequence=['#00D4AA']
+            )
+            fig_timeline.update_layout(height=300)
+            st.plotly_chart(fig_timeline, use_container_width=True)
+        
+        # Tabela de tickets recentes
+        st.subheader("🕒 Tickets Recentes")
+        
+        if tickets:
+            # Prepara dados para exibição
+            df_display = pd.DataFrame(tickets)
+            df_display = df_display[['ticket_id', 'nome', 'status', 'prioridade', 'data_criacao']].head(10)
+            df_display['data_criacao'] = pd.to_datetime(df_display['data_criacao']).dt.strftime('%d/%m/%Y %H:%M')
+            df_display.columns = ['ID', 'Nome', 'Status', 'Prioridade', 'Data']
+            
+            st.dataframe(df_display, use_container_width=True)
         else:
             st.info("Nenhum ticket registrado ainda.")
     
-    with col2:
-        st.subheader("💻 Dispositivos Mais Solicitados")
-        if stats['dispositivos_mais_solicitados']:
-            dispositivos_df = pd.DataFrame(
-                list(stats['dispositivos_mais_solicitados'].items())[:5],
-                columns=['Dispositivo', 'Quantidade']
-            )
-            st.bar_chart(dispositivos_df.set_index('Dispositivo'))
-        else:
-            st.info("Nenhum dispositivo solicitado ainda.")
-    
-    # Tabela de tickets recentes
-    st.subheader("🕒 Tickets Recentes")
-    df_completo = fila_manager.obter_dados_completos()
-    
-    if not df_completo.empty:
-        # Mostra os 10 mais recentes
-        df_recentes = df_completo.sort_values('data_criacao', ascending=False).head(10)
-        
-        # Seleciona colunas para exibição
-        colunas_exibicao = ['id', 'nome', 'dispositivos', 'status', 'prioridade', 'data_criacao']
-        df_display = df_recentes[colunas_exibicao].copy()
-        
-        # Renomeia colunas
-        df_display.columns = ['ID', 'Nome', 'Dispositivos', 'Status', 'Prioridade', 'Data']
-        
-        st.dataframe(df_display, use_container_width=True)
     else:
-        st.info("Nenhum ticket registrado ainda.")
+        st.info("📊 Nenhum dado disponível ainda. Crie alguns tickets para ver as estatísticas!")
 
-def page_relatorios():
-    """Página de relatórios"""
-    st.subheader("📈 Relatórios e Análises")
+def main():
+    """Função principal da aplicação"""
+    # Aplica CSS customizado
+    apply_custom_css()
     
-    col1, col2 = st.columns([2, 1])
+    # Inicializa estado da sessão
+    init_session_state()
     
-    with col2:
-        st.subheader("🔧 Gerar Relatórios")
-        
-        if st.button("📊 Gerar Relatório Completo", use_container_width=True):
-            with st.spinner("Gerando relatório..."):
-                try:
-                    resultado = report_generator.gerar_relatorio_completo()
-                    
-                    st.success("✅ Relatório gerado com sucesso!")
-                    
-                    # Links para download
-                    if os.path.exists(resultado['relatorio_html']):
-                        with open(resultado['relatorio_html'], 'rb') as f:
-                            st.download_button(
-                                "📄 Baixar Relatório HTML",
-                                f.read(),
-                                file_name=f"relatorio_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                                mime="text/html"
-                            )
-                    
-                    # Exibe gráficos se existirem
-                    for nome, caminho in resultado['graficos'].items():
-                        if caminho and os.path.exists(caminho):
-                            st.markdown(f"**{nome.title()}:** [Visualizar]({caminho})")
-                
-                except Exception as e:
-                    st.error(f"❌ Erro ao gerar relatório: {str(e)}")
-        
-        if st.button("📊 Gráfico de Status", use_container_width=True):
-            with st.spinner("Gerando gráfico..."):
-                try:
-                    caminho = report_generator.gerar_grafico_status()
-                    if caminho:
-                        st.success("✅ Gráfico gerado!")
-                        st.markdown(f"[Visualizar Gráfico]({caminho})")
-                except Exception as e:
-                    st.error(f"❌ Erro: {str(e)}")
-        
-        if st.button("💻 Gráfico de Dispositivos", use_container_width=True):
-            with st.spinner("Gerando gráfico..."):
-                try:
-                    caminho = report_generator.gerar_grafico_dispositivos()
-                    if caminho:
-                        st.success("✅ Gráfico gerado!")
-                        st.markdown(f"[Visualizar Gráfico]({caminho})")
-                except Exception as e:
-                    st.error(f"❌ Erro: {str(e)}")
-    
-    with col1:
-        st.subheader("📋 Dados Gerais")
-        
-        # Estatísticas gerais
-        relatorio_geral = report_generator.gerar_relatorio_geral()
-        
-        # Exibe métricas
-        col_a, col_b, col_c = st.columns(3)
-        
-        with col_a:
-            st.metric("📊 Total de Tickets", relatorio_geral['total_tickets'])
-            st.metric("⏳ Pendentes", relatorio_geral['pendentes'])
-        
-        with col_b:
-            st.metric("🔄 Em Andamento", relatorio_geral['em_andamento'])
-            st.metric("✅ Concluídos", relatorio_geral['concluidos'])
-        
-        with col_c:
-            st.metric(
-                "⏱️ Tempo Médio (horas)",
-                f"{relatorio_geral['tempo_medio_resolucao_horas']:.1f}"
-            )
-        
-        # Top dispositivos
-        if relatorio_geral['dispositivos_mais_solicitados']:
-            st.subheader("🏆 Top 5 Dispositivos")
-            top_dispositivos = list(relatorio_geral['dispositivos_mais_solicitados'].items())[:5]
-            
-            for i, (dispositivo, count) in enumerate(top_dispositivos, 1):
-                st.write(f"{i}. **{dispositivo}**: {count} solicitações")
-
-def page_administracao():
-    """Página de administração"""
-    st.subheader("⚙️ Administração do Sistema")
-    
-    # Senha de administrador (simples)
-    if 'admin_authenticated' not in st.session_state:
-        st.session_state.admin_authenticated = False
-    
-    if not st.session_state.admin_authenticated:
-        senha = st.text_input("🔐 Senha de Administrador", type="password")
-        if st.button("Entrar"):
-            if senha == "mavi2024":  # Senha simples para demonstração
-                st.session_state.admin_authenticated = True
-                st.rerun()
-            else:
-                st.error("❌ Senha incorreta!")
+    # Verifica autenticação
+    if not st.session_state.authenticated:
+        show_login_page()
         return
     
-    # Interface de administração
-    tab1, tab2, tab3 = st.tabs(["🎫 Gerenciar Tickets", "📊 Dados", "⚙️ Configurações"])
+    # Exibe navegação
+    show_navigation()
     
-    with tab1:
-        st.subheader("Gerenciamento de Tickets")
-        
-        df_completo = fila_manager.obter_dados_completos()
-        
-        if not df_completo.empty:
-            # Filtros
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                status_filter = st.selectbox(
-                    "Filtrar por Status",
-                    ["Todos", "Pendente", "Em andamento", "Concluída"]
-                )
-            
-            with col2:
-                prioridade_filter = st.selectbox(
-                    "Filtrar por Prioridade",
-                    ["Todas", "Normal", "Alta", "Urgente"]
-                )
-            
-            # Aplica filtros
-            df_filtrado = df_completo.copy()
-            
-            if status_filter != "Todos":
-                df_filtrado = df_filtrado[df_filtrado['status'] == status_filter]
-            
-            if prioridade_filter != "Todas":
-                df_filtrado = df_filtrado[df_filtrado['prioridade'] == prioridade_filter]
-            
-            # Exibe tabela
-            st.dataframe(df_filtrado, use_container_width=True)
-            
-            # Atualização de status
-            st.subheader("Atualizar Status")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                ticket_id = st.selectbox("Ticket ID", df_completo['id'].tolist())
-            
-            with col2:
-                novo_status = st.selectbox("Novo Status", ["Pendente", "Em andamento", "Concluída"])
-            
-            with col3:
-                observacoes = st.text_input("Observações")
-            
-            with col4:
-                if st.button("Atualizar"):
-                    if fila_manager.atualizar_status(ticket_id, novo_status, observacoes):
-                        st.success("✅ Status atualizado!")
-                        
-                        # Envia notificação por email
-                        ticket_data = df_completo[df_completo['id'] == ticket_id].iloc[0]
-                        email_notifier.enviar_atualizacao_status(
-                            ticket_data['email'], ticket_id, novo_status, observacoes
-                        )
-                        
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao atualizar status!")
-        else:
-            st.info("Nenhum ticket encontrado.")
-    
-    with tab2:
-        st.subheader("Exportar Dados")
-        
-        df_completo = fila_manager.obter_dados_completos()
-        
-        if not df_completo.empty:
-            # Botão de download CSV
-            csv = df_completo.to_csv(index=False)
-            st.download_button(
-                "📥 Baixar dados em CSV",
-                csv,
-                file_name=f"tickets_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
-            
-            # Estatísticas
-            st.subheader("Estatísticas dos Dados")
-            st.write(f"**Total de registros:** {len(df_completo)}")
-            st.write(f"**Período:** {df_completo['data_criacao'].min()} a {df_completo['data_criacao'].max()}")
-        else:
-            st.info("Nenhum dado para exportar.")
-    
-    with tab3:
-        st.subheader("Configurações do Sistema")
-        
-        st.write("**Configurações de E-mail:**")
-        st.code(f"""
-Servidor SMTP: {email_config.smtp_server}
-Porta: {email_config.smtp_port}
-E-mail remetente: {email_config.sender_email}
-        """)
-        
-        st.write("**Configurações da Aplicação:**")
-        st.code(f"""
-Arquivo da fila: {app_config.fila_file}
-Diretório de relatórios: {app_config.relatorios_dir}
-Tamanho máximo da fila: {app_config.max_fila_size}
-        """)
-        
-        if st.button("🔄 Limpar Cache"):
-            st.cache_resource.clear()
-            st.success("✅ Cache limpo!")
+    # Roteamento de páginas
+    if st.session_state.current_page == "🏠 Início":
+        show_home_page()
+    elif st.session_state.current_page == "🎫 Nova Solicitação":
+        show_new_ticket_page()
+    elif st.session_state.current_page == "🔍 Consultar Ticket":
+        show_search_ticket_page()
+    elif st.session_state.current_page == "📊 Dashboard":
+        show_dashboard_page()
+    elif st.session_state.current_page == "📈 Relatórios":
+        report_generator = get_report_generator()
+        report_generator.show_reports_page()
+    elif st.session_state.current_page == "⚙️ Administração":
+        show_admin_page()
 
 if __name__ == "__main__":
     main()

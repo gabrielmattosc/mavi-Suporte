@@ -1,81 +1,224 @@
-🎯 Mavi Suporte - Sistema Inteligente de Gestão de Solicitações
-Um sistema moderno e completo para gerenciamento de solicitações de suporte, desenvolvido com Streamlit. Oferece uma interface intuitiva, autenticação de usuários e um conjunto robusto de funcionalidades para otimizar o fluxo de trabalho de suporte.
+# 🎯 Sistema de Suporte Mavi - Streamlit
 
-✨ Principais Funcionalidades
-Sistema de Tickets: Criação de tickets com IDs únicos, fila inteligente com prioridades (Normal, Alta, Urgente) e rastreamento completo do ciclo de vida.
+Sistema moderno de gerenciamento de tickets de suporte desenvolvido com Streamlit, MongoDB e design responsivo.
 
-Autenticação Segura: Sistema de login com dois níveis de acesso (Administrador e Usuário), senhas criptografadas e controle de permissões por perfil.
+## ✨ Funcionalidades
 
-Dashboard e Relatórios: Painel interativo com métricas em tempo real, gráficos dinâmicos (distribuição de status, timeline, etc.) e relatórios exportáveis em HTML, CSV e Excel.
+### 🎫 **Gestão de Tickets**
+- ✅ Criação de solicitações com formulário intuitivo
+- ✅ Consulta de tickets por ID
+- ✅ Acompanhamento de status em tempo real
+- ✅ Sistema de filas com posicionamento
+- ✅ Persistência de dados do formulário
 
-Notificações Multicanal: Envio de notificações automáticas por:
+### 🔐 **Sistema de Autenticação**
+- ✅ Login com diferentes níveis de acesso
+- ✅ **Admin**: Acesso total ao sistema
+- ✅ **Usuário**: Criação e consulta de tickets
+- ✅ **Público**: Acesso limitado sem login
 
-E-mail: Templates HTML profissionais via Gmail.
+### 📊 **Dashboard e Relatórios**
+- ✅ Gráficos interativos com Plotly
+- ✅ Estatísticas em tempo real
+- ✅ Análise de tendências
+- ✅ Geração de relatórios PDF
+- ✅ Exportação de dados (CSV/JSON)
 
-SMS: Integração opcional com Twilio.
+### 📧 **Notificações por Email**
+- ✅ Confirmação automática de tickets
+- ✅ Notificações de mudança de status
+- ✅ Alertas para administradores
+- ✅ Templates HTML responsivos
 
-WhatsApp: Envio automatizado de mensagens via PyWhatKit.
+### 🎨 **Design Moderno**
+- ✅ Layout responsivo com cores da Mavi
+- ✅ Logo integrado em todas as páginas
+- ✅ Interface intuitiva e moderna
+- ✅ Componentes customizados
 
-Design Moderno: Interface com gradientes, cards com sombras suaves e componentes animados, garantindo uma experiência de uso agradável e responsiva para desktop e mobile.
+## 🚀 Como Executar
 
-Painel Administrativo Completo: Área protegida para gestão de tickets, análise de usuários e configurações gerais do sistema, incluindo um seletor para ocultar/exibir colunas na tabela de dados.
+### 📋 **Pré-requisitos**
+- Python 3.8+
+- MongoDB (opcional - usa fallback em memória)
 
-🚀 Instalação e Execução
-Pré-requisitos
-Python 3.8+
+### 🔧 **Instalação**
 
-Conta Gmail (para notificações por e-mail)
+1. **Clone ou extraia o projeto**
+```bash
+cd mavi_suporte_streamlit
+```
 
-Conta Twilio (opcional, para SMS)
-
-1. Clone e Instale as Dependências
-Bash
-
-# Clone o projeto
-git clone <seu-repositorio>
-cd mavi_suporte
-
-# Instale as dependências
+2. **Instale as dependências**
+```bash
 pip install -r requirements.txt
-2. Configure as Variáveis de Ambiente
-Copie o arquivo .env.example para .env e adicione suas credenciais do Gmail e, opcionalmente, do Twilio.
+```
 
-Snippet de código
+3. **Configure o email (opcional)**
+```bash
+# Crie um arquivo .streamlit/secrets.toml
+[email]
+password = "sua_senha_do_email"
+```
 
-# Configuração do Gmail
-MAVI_EMAIL=seu.email@gmail.com
-MAVI_EMAIL_PASSWORD=sua_senha_de_app_gmail
+4. **Execute a aplicação**
+```bash
+streamlit run app.py
+```
 
-# Configuração do Twilio (Opcional)
-TWILIO_ACCOUNT_SID=seu_account_sid
-TWILIO_AUTH_TOKEN=seu_auth_token
-TWILIO_FROM_NUMBER=+5511999999999
-3. Execute o Sistema
-Bash
+5. **Acesse no navegador**
+```
+http://localhost:8501
+```
 
-streamlit run app_with_auth.py
-O sistema estará disponível em: http://localhost:8501
+## 👥 **Contas de Teste**
 
-🔐 Acesso ao Sistema
-O sistema possui dois níveis de acesso pré-configurados:
+### 🔑 **Credenciais**
+- **Admin**: `admin` / `admin123`
+- **Usuário**: `teste` / `teste123`
+- **Público**: Clique em "Acesso Público"
 
-Administrador:
+### 🎯 **Permissões**
 
-Login: admin
+| Funcionalidade | Admin | Usuário | Público |
+|---|---|---|---|
+| Criar Tickets | ✅ | ✅ | ✅ |
+| Consultar Tickets | ✅ | ✅ | ✅ |
+| Dashboard | ✅ | ✅ | ✅ |
+| Relatórios PDF | ✅ | ❌ | ❌ |
+| Gerenciar Tickets | ✅ | ❌ | ❌ |
+| Administração | ✅ | ❌ | ❌ |
 
-Senha: admin123
+## 📁 **Estrutura do Projeto**
 
-Permissões: Acesso total a todas as funcionalidades.
+```
+mavi_suporte_streamlit/
+├── app.py                 # Aplicação principal
+├── database.py           # Gerenciamento de dados
+├── admin.py              # Módulo administrativo
+├── email_service.py      # Serviço de email
+├── reports.py            # Geração de relatórios
+├── requirements.txt      # Dependências
+├── mavi.logo.png        # Logo da empresa
+├── .streamlit/
+│   └── config.toml      # Configurações do Streamlit
+└── README.md            # Esta documentação
+```
 
-Usuário Padrão:
+## 🔧 **Configurações**
 
-Login: teste
+### 📧 **Email**
+Para ativar o envio de emails, configure:
 
-Senha: teste123
+1. **Via secrets.toml**:
+```toml
+[email]
+password = "sua_senha_app_gmail"
+```
 
-Permissões: Acesso limitado para criar e acompanhar as próprias solicitações.
+2. **Via variável de ambiente**:
+```bash
+export MAIL_PASSWORD="sua_senha_app_gmail"
+```
 
-📄 Licença
-Este projeto está sob a licença MIT.
+### 🗄️ **Banco de Dados**
+- **MongoDB**: Conecta automaticamente em `mongodb://localhost:27017/`
+- **Fallback**: Usa armazenamento em memória se MongoDB não estiver disponível
 
-Desenvolvido por Gabriel Mattos
+## 🎨 **Personalização**
+
+### 🎨 **Cores da Mavi**
+- **Verde Principal**: `#00D4AA`
+- **Verde Escuro**: `#00B894`
+- **Verde Claro**: `#00E5BB`
+
+### 🖼️ **Logo**
+- Substitua `mavi.logo.png` pelo logo desejado
+- Formato recomendado: PNG com fundo transparente
+- Dimensões: 300px de largura
+
+## 📊 **Funcionalidades Avançadas**
+
+### 📈 **Dashboard Interativo**
+- Gráficos de pizza para status
+- Gráficos de barras para dispositivos
+- Timeline de criação de tickets
+- Análise por prioridade
+- Detalhes expandíveis ao clicar
+
+### 📄 **Relatórios PDF**
+- Relatório completo
+- Relatório por status
+- Relatório por período
+- Incluir/excluir gráficos
+- Download automático
+
+### 🔍 **Análises Detalhadas**
+- Performance de atendimento
+- Tendências temporais
+- Exportação de dados
+- Métricas customizadas
+
+## 🚀 **Deploy**
+
+### 🌐 **Streamlit Cloud**
+1. Faça upload do projeto para GitHub
+2. Conecte com Streamlit Cloud
+3. Configure secrets para email
+4. Deploy automático
+
+### 🐳 **Docker**
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "app.py"]
+```
+
+### ☁️ **Heroku**
+```bash
+# Procfile
+web: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+```
+
+## 🔧 **Solução de Problemas**
+
+### ❌ **Problemas Comuns**
+
+1. **MongoDB não conecta**
+   - Sistema usa fallback em memória automaticamente
+   - Verifique se MongoDB está rodando na porta 27017
+
+2. **Email não envia**
+   - Configure a senha do email nas secrets
+   - Use senha de app do Gmail (não a senha normal)
+
+3. **Logo não aparece**
+   - Verifique se `mavi.logo.png` está na raiz do projeto
+   - Formato deve ser PNG, JPG ou similar
+
+4. **Erro de dependências**
+   - Execute: `pip install -r requirements.txt`
+   - Use Python 3.8 ou superior
+
+## 📞 **Suporte**
+
+Para suporte técnico:
+- **Email**: gabriel@maviclick.com
+- **Sistema**: Crie um ticket através da própria aplicação
+
+## 📄 **Licença**
+
+© 2025 Mavi Click. Todos os direitos reservados.
+
+---
+
+**Desenvolvido com ❤️ usando Streamlit**
+
