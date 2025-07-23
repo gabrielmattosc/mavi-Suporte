@@ -221,60 +221,47 @@ def show_navigation():
     with st.sidebar:
         st.markdown(f"### 👋 Olá, {st.session_state.user['username']}!")
         
-        # Opções baseadas no perfil do usuário
+        pages = []
         if st.session_state.user['role'] == 'admin':
             pages = [
-                "🏠 Início",
-                "🎫 Nova Solicitação", 
-                "🔍 Consultar Ticket",
-                "📊 Dashboard",
-                "📈 Relatórios",
-                "⚙️ Administração"
+                "🏠 Início", "🎫 Nova Solicitação", "🔍 Consultar Ticket",
+                "📊 Dashboard", "📈 Relatórios", "⚙️ Administração"
             ]
-        # CORREÇÃO: Usando 'user' para consistência
         elif st.session_state.user['role'] == 'user': 
-            pages = [
-                "🏠 Início",
-                "🎫 Nova Solicitação",
-                "🔍 Consultar Ticket", 
-            ]
+            pages = ["🏠 Início", "🎫 Nova Solicitação", "🔍 Consultar Ticket"]
         
-        # --- LÓGICA DE NAVEGAÇÃO CORRIGIDA ---
-
-        # 1. Encontra o índice da página atual para sincronizar o selectbox
-        # Se a página atual não estiver na lista (improvável, mas seguro), volte para o início
         try:
             current_page_index = pages.index(st.session_state.current_page)
         except ValueError:
             current_page_index = 0
             st.session_state.current_page = pages[0]
             
-        # 2. Cria o selectbox, garantindo que ele mostre a página atual
         selected_page = st.selectbox(
-            "📋 Navegação", 
-            pages, 
-            index=current_page_index, # Garante que o selectbox reflita a página atual
-            key="navigation"
+            "📋 Navegação", pages, index=current_page_index, key="navigation"
         )
         
-        # 3. Altera a página SOMENTE se a seleção no selectbox for diferente da página atual
         if selected_page != st.session_state.current_page:
             st.session_state.current_page = selected_page
-            st.rerun() # Recarrega para exibir a nova página selecionada
+            st.rerun()
 
-        # O restante da função permanece igual
         st.markdown("---")
-        
         st.markdown(f"""
         **Perfil:** {st.session_state.user['role'].title()}  
         **Email:** {st.session_state.user['email']}
         """)
         
         if st.button("🚪 Sair", use_container_width=True):
-            # Limpa o estado da sessão ao sair
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Define quais chaves são relacionadas ao login do usuário
+            keys_to_delete = ['authenticated', 'user', 'current_page']
+            
+            # Apaga apenas as chaves de login, preservando o "banco de dados"
+            for key in keys_to_delete:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
             st.rerun()
+            # --- FIM DA CORREÇÃO ---
 
 def show_home_page():
     """Exibe a página inicial com ações rápidas baseadas no perfil."""
