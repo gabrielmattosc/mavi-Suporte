@@ -208,6 +208,31 @@ web: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
    - Execute: `pip install -r requirements.txt`
    - Use Python 3.8 ou superior
 
+# Informações de login
+        **Contas de Teste:**
+        - **Admin**: admin / admin123
+        - **Usuário**: teste / teste123
+
+
+
+# Informações de acesso
+    Níveis de Acesso
+
+        👑 Administrador
+        - Gerenciar todos os tickets
+        - Atualizar status
+        - Gerar relatórios
+        - Gerenciar usuários
+        - Configurações do sistema
+    
+        👤 Usuário
+        - Criar tickets
+        - Consultar próprios tickets
+        - Visualizar dashboard
+        - Receber notificações
+
+
+
 ## 📞 **Suporte**
 
 Para suporte técnico:
