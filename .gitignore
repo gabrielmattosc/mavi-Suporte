@@ -3,3 +3,20 @@
         - **Admin**: admin / admin123
         - **Usuário**: teste / teste123
         - **Público**: Clique em "Acesso Público"
+
+
+# Informações de acesso
+    Níveis de Acesso
+
+        👑 Administrador
+        - Gerenciar todos os tickets
+        - Atualizar status
+        - Gerar relatórios
+        - Gerenciar usuários
+        - Configurações do sistema
+    
+        👤 Usuário
+        - Criar tickets
+        - Consultar próprios tickets
+        - Visualizar dashboard
+        - Receber notificações

@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import io
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as ReportLabImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
@@ -312,78 +312,9 @@ class ReportGenerator:
                 st.session_state.show_timeline_details = False
                 st.rerun()
     
-    def show_pdf_generator(self):
-        """Exibe interface para geração de PDF"""
-        st.markdown("### 📄 Gerador de Relatórios PDF")
-        
-        if st.session_state.user['role'] != 'admin':
-            st.error("❌ Apenas administradores podem gerar relatórios PDF.")
-            return
-        
-        # Opções de relatório
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            tipo_relatorio = st.selectbox(
-                "Tipo de Relatório",
-                ["Relatório Completo", "Relatório por Status", "Relatório por Período"]
-            )
-        
-        with col2:
-            incluir_graficos = st.checkbox("Incluir Gráficos", value=True)
-        
-        # Filtros específicos
-        if tipo_relatorio == "Relatório por Status":
-            status_filtro = st.selectbox(
-                "Status para Filtrar",
-                ["Pendente", "Em andamento", "Concluída"]
-            )
-        elif tipo_relatorio == "Relatório por Período":
-            col_a, col_b = st.columns(2)
-            with col_a:
-                data_inicio = st.date_input("Data Início", value=datetime.now().date() - timedelta(days=30))
-            with col_b:
-                data_fim = st.date_input("Data Fim", value=datetime.now().date())
-        
-        # Botão para gerar PDF
-        if st.button("📄 Gerar Relatório PDF", use_container_width=True):
-            with st.spinner("Gerando relatório PDF..."):
-                try:
-                    # Prepara filtros
-                    filtros = {}
-                    if tipo_relatorio == "Relatório por Status":
-                        filtros["status"] = status_filtro
-                    
-                    # Gera PDF
-                    pdf_buffer = self.generate_pdf_report(
-                        tipo_relatorio=tipo_relatorio,
-                        filtros=filtros,
-                        incluir_graficos=incluir_graficos,
-                        data_inicio=data_inicio if tipo_relatorio == "Relatório por Período" else None,
-                        data_fim=data_fim if tipo_relatorio == "Relatório por Período" else None
-                    )
-                    
-                    if pdf_buffer:
-                        # Disponibiliza para download
-                        st.success("✅ Relatório PDF gerado com sucesso!")
-                        
-                        filename = f"relatorio_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        
-                        st.download_button(
-                            label="📥 Baixar Relatório PDF",
-                            data=pdf_buffer.getvalue(),
-                            file_name=filename,
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    else:
-                        st.error("❌ Erro ao gerar relatório PDF.")
-                
-                except Exception as e:
-                    st.error(f"❌ Erro ao gerar relatório: {str(e)}")
-    
+    # vvvvvvvvvvv FUNÇÃO ALTERADA vvvvvvvvvvv
     def show_detailed_analysis(self):
-        """Exibe análises detalhadas"""
+        """Exibe análises detalhadas e opções de exportação"""
         st.markdown("### 📋 Análises Detalhadas")
         
         _, ticket_manager, _ = get_database_managers()
@@ -414,7 +345,7 @@ class ReportGenerator:
         st.markdown("#### 📈 Análise de Tendências")
         
         # Tickets por mês
-        df['mes'] = df['data_criacao'].dt.to_period('M')
+        df['mes'] = df['data_criacao'].dt.to_period('M').astype(str)
         tickets_por_mes = df.groupby('mes').size()
         
         if len(tickets_por_mes) > 1:
@@ -424,7 +355,7 @@ class ReportGenerator:
             if len(tickets_por_mes) >= 2:
                 variacao = tickets_por_mes.iloc[-1] - tickets_por_mes.iloc[-2]
                 if variacao > 0:
-                    st.success(f"📈 Aumento de {variacao} tickets no último período")
+                    st.success(f"� Aumento de {variacao} tickets no último período")
                 elif variacao < 0:
                     st.info(f"📉 Redução de {abs(variacao)} tickets no último período")
                 else:
@@ -432,51 +363,132 @@ class ReportGenerator:
         else:
             st.info("Dados insuficientes para análise de tendência.")
         
-        # Exportação de dados
-        st.markdown("#### 📊 Exportar Dados")
+        # --- SEÇÃO DE EXPORTAÇÃO ATUALIZADA ---
+        st.markdown("---")
+        st.markdown("#### 📥 Exportar Relatório Completo de Tickets")
         
+        # Prepara o DataFrame para exportação
+        df_export = df.copy()
+        
+        # Converte a lista de observações em uma string legível
+        if 'observacoes' in df_export.columns:
+            df_export['observacoes'] = df_export['observacoes'].apply(
+                lambda obs_list: "\n".join([f"{obs.get('data').strftime('%d/%m/%y %H:%M')}: {obs.get('texto', '')}" for obs in obs_list]) if obs_list else ""
+            )
+        
+        # Formata datas para melhor leitura no relatório
+        df_export['data_criacao'] = pd.to_datetime(df_export['data_criacao']).dt.strftime('%d/%m/%Y %H:%M:%S')
+        if 'data_atualizacao' in df_export.columns:
+            df_export['data_atualizacao'] = pd.to_datetime(df_export['data_atualizacao']).dt.strftime('%d/%m/%Y %H:%M:%S')
+
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("📥 Exportar CSV", use_container_width=True):
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    "📥 Baixar CSV",
-                    csv,
-                    file_name=f"tickets_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+            # --- BOTÃO DE EXPORTAR PARA EXCEL ---
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_export.to_excel(writer, index=False, sheet_name='Tickets')
+            
+            excel_data = output.getvalue()
+
+            st.download_button(
+                label="📥 Baixar Relatório em Excel (.xlsx)",
+                data=excel_data,
+                file_name=f"relatorio_tickets_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
+        with col2:
+            # --- BOTÃO DE EXPORTAR PARA CSV ---
+            # Mantido como opção, substituindo o de JSON
+            csv_data = df_export.to_csv(index=False, encoding='utf-8-sig')
+            st.download_button(
+                label="📄 Baixar Relatório em CSV (.csv)",
+                data=csv_data,
+                file_name=f"relatorio_tickets_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+    # ^^^^^^^^^^^ FIM DA FUNÇÃO ALTERADA ^^^^^^^^^^^
+    
+    def show_pdf_generator(self):
+        """Exibe interface para geração de PDF"""
+        st.markdown("### 📄 Gerador de Relatórios PDF")
+        
+        if st.session_state.user['role'] != 'admin':
+            st.error("❌ Apenas administradores podem gerar relatórios PDF.")
+            return
+        
+        # Opções de relatório
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            tipo_relatorio = st.selectbox(
+                "Tipo de Relatório",
+                ["Relatório Completo", "Relatório por Status", "Relatório por Período"]
+            )
         
         with col2:
-            if st.button("📥 Exportar JSON", use_container_width=True):
-                json_data = df.to_json(orient='records', date_format='iso')
-                st.download_button(
-                    "📥 Baixar JSON",
-                    json_data,
-                    file_name=f"tickets_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                    mime="application/json",
-                    use_container_width=True
-                )
+            incluir_graficos = st.checkbox("Incluir Gráficos", value=True)
+        
+        # Filtros específicos
+        filtros = {}
+        data_inicio = None
+        data_fim = None
+        if tipo_relatorio == "Relatório por Status":
+            status_filtro = st.selectbox(
+                "Status para Filtrar",
+                ["Pendente", "Em andamento", "Concluída"]
+            )
+            filtros["status"] = status_filtro
+        elif tipo_relatorio == "Relatório por Período":
+            col_a, col_b = st.columns(2)
+            with col_a:
+                data_inicio = st.date_input("Data Início", value=datetime.now().date() - timedelta(days=30))
+            with col_b:
+                data_fim = st.date_input("Data Fim", value=datetime.now().date())
+        
+        # Botão para gerar PDF
+        if st.button("📄 Gerar Relatório PDF", use_container_width=True):
+            with st.spinner("Gerando relatório PDF..."):
+                try:
+                    # Gera PDF
+                    pdf_buffer = self.generate_pdf_report(
+                        tipo_relatorio=tipo_relatorio,
+                        filtros=filtros,
+                        incluir_graficos=incluir_graficos,
+                        data_inicio=data_inicio,
+                        data_fim=data_fim
+                    )
+                    
+                    if pdf_buffer:
+                        # Disponibiliza para download
+                        st.success("✅ Relatório PDF gerado com sucesso!")
+                        
+                        filename = f"relatorio_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                        
+                        st.download_button(
+                            label="📥 Baixar Relatório PDF",
+                            data=pdf_buffer.getvalue(),
+                            file_name=filename,
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error("❌ Erro ao gerar relatório PDF.")
+                
+                except Exception as e:
+                    st.error(f"❌ Erro ao gerar relatório: {str(e)}")
     
     def generate_pdf_report(self, 
-                          tipo_relatorio: str,
-                          filtros: Dict[str, Any] = None,
-                          incluir_graficos: bool = True,
-                          data_inicio: Optional[datetime] = None,
-                          data_fim: Optional[datetime] = None) -> Optional[io.BytesIO]:
+                            tipo_relatorio: str,
+                            filtros: Dict[str, Any] = None,
+                            incluir_graficos: bool = True,
+                            data_inicio: Optional[datetime.date] = None,
+                            data_fim: Optional[datetime.date] = None) -> Optional[io.BytesIO]:
         """
         Gera relatório em PDF
-        
-        Args:
-            tipo_relatorio: Tipo do relatório
-            filtros: Filtros a aplicar
-            incluir_graficos: Se deve incluir gráficos
-            data_inicio: Data de início (para relatório por período)
-            data_fim: Data de fim (para relatório por período)
-            
-        Returns:
-            Buffer com o PDF gerado
         """
         try:
             # Cria buffer para o PDF
@@ -608,4 +620,3 @@ def get_report_generator() -> ReportGenerator:
         Instância do gerador de relatórios
     """
     return ReportGenerator()
-

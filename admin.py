@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 from database import get_database_managers
 from typing import Dict, List, Any
+from email_service import get_email_service # Adicione esta importação no topo
 
 def show_admin_page():
     """Exibe a página de administração"""
@@ -75,17 +76,13 @@ def show_ticket_management():
         # Prepara dados para exibição
         df_tickets = pd.DataFrame(tickets)
         
-        # Seleciona colunas relevantes
         colunas_exibicao = ['ticket_id', 'nome', 'email', 'dispositivos', 'status', 'prioridade', 'data_criacao']
         df_display = df_tickets[colunas_exibicao].copy()
         
-        # Formata data
         df_display['data_criacao'] = pd.to_datetime(df_display['data_criacao']).dt.strftime('%d/%m/%Y %H:%M')
         
-        # Renomeia colunas
         df_display.columns = ['ID', 'Nome', 'Email', 'Dispositivos', 'Status', 'Prioridade', 'Data']
         
-        # Exibe tabela
         st.dataframe(df_display, use_container_width=True)
         
         # Seção de atualização de status
@@ -108,12 +105,11 @@ def show_ticket_management():
             observacao = st.text_input("Observação (opcional)")
         
         with col4:
-            st.write("")  # Espaçamento
+            st.write("")
             if st.button("💾 Atualizar Status"):
                 if ticket_manager.atualizar_status(selected_ticket, novo_status, observacao):
                     st.success(f"✅ Status do ticket #{selected_ticket} atualizado!")
                     
-                    # Envia email de notificação
                     ticket_detalhes = ticket_manager.obter_ticket(selected_ticket)
                     if ticket_detalhes:
                         from email_service import get_email_service
@@ -149,28 +145,40 @@ def show_ticket_management():
                 
                 with col1:
                     st.markdown("**Informações Básicas:**")
-                    st.write(f"**Nome:** {ticket_detalhes['nome']}")
-                    st.write(f"**Email:** {ticket_detalhes['email']}")
-                    st.write(f"**Squad Leader:** {ticket_detalhes['squad_leader']}")
-                    st.write(f"**Prioridade:** {ticket_detalhes['prioridade']}")
-                    st.write(f"**Status:** {ticket_detalhes['status']}")
+                    st.write(f"**Nome:** {ticket_detalhes.get('nome', 'N/A')}")
+                    st.write(f"**Email:** {ticket_detalhes.get('email', 'N/A')}")
+                    st.write(f"**Squad Leader:** {ticket_detalhes.get('squad_leader', 'N/A')}")
+                    st.write(f"**Prioridade:** {ticket_detalhes.get('prioridade', 'N/A')}")
+                    st.write(f"**Status:** {ticket_detalhes.get('status', 'N/A')}")
                 
                 with col2:
                     st.markdown("**Datas:**")
-                    st.write(f"**Criação:** {ticket_detalhes['data_criacao'].strftime('%d/%m/%Y %H:%M')}")
-                    st.write(f"**Atualização:** {ticket_detalhes['data_atualizacao'].strftime('%d/%m/%Y %H:%M')}")
+                    st.write(f"**Criação:** {ticket_detalhes.get('data_criacao', datetime.now()).strftime('%d/%m/%Y %H:%M')}")
+                    st.write(f"**Atualização:** {ticket_detalhes.get('data_atualizacao', datetime.now()).strftime('%d/%m/%Y %H:%M')}")
                 
                 st.markdown("**Dispositivos/Serviços:**")
-                st.write(ticket_detalhes['dispositivos'])
+                st.write(ticket_detalhes.get('dispositivos', 'Nenhum'))
                 
                 st.markdown("**Descrição da Necessidade:**")
-                st.write(ticket_detalhes['necessidade'])
+                st.write(ticket_detalhes.get('necessidade', 'Nenhuma'))
                 
                 # Observações
                 if ticket_detalhes.get('observacoes'):
                     st.markdown("**Histórico de Observações:**")
                     for obs in ticket_detalhes['observacoes']:
-                        st.write(f"- **{obs['data'].strftime('%d/%m/%Y %H:%M')}**: {obs['texto']} (Status: {obs['status']})")
+                        # vvvvvvvvvvv LÓGICA DE EXIBIÇÃO CORRIGIDA vvvvvvvvvvv
+                        obs_data_str = obs.get('data', datetime.now()).strftime('%d/%m/%Y %H:%M')
+                        obs_texto = obs.get('texto', '')
+
+                        # Verifica se a chave 'status' existe na observação
+                        if 'status' in obs:
+                            # Se existir, mostra o status que foi registrado
+                            status_obs = obs['status']
+                            st.write(f"- **{obs_data_str}**: {obs_texto} (Status alterado para: {status_obs})")
+                        else:
+                            # Se não existir (observação antiga), mostra apenas o texto
+                            st.write(f"- **{obs_data_str}**: {obs_texto}")
+                        # ^^^^^^^^^^^ FIM DA LÓGICA CORRIGIDA ^^^^^^^^^^^
     
     else:
         st.info("📋 Nenhum ticket encontrado com os filtros aplicados.")
@@ -181,11 +189,9 @@ def show_admin_statistics():
     
     _, ticket_manager, _ = get_database_managers()
     
-    # Estatísticas gerais
     stats = ticket_manager.obter_estatisticas()
     tickets = ticket_manager.listar_tickets()
     
-    # Métricas principais
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -198,13 +204,11 @@ def show_admin_statistics():
         st.metric("✅ Concluídos", stats['concluidos'])
     
     if tickets:
-        # Análise por período
         st.markdown("### 📅 Análise por Período")
         
         df_tickets = pd.DataFrame(tickets)
         df_tickets['data'] = pd.to_datetime(df_tickets['data_criacao']).dt.date
         
-        # Tickets por dia
         tickets_por_dia = df_tickets.groupby('data').size().reset_index(name='quantidade')
         
         col1, col2 = st.columns(2)
@@ -214,12 +218,10 @@ def show_admin_statistics():
             st.line_chart(tickets_por_dia.set_index('data'))
         
         with col2:
-            # Análise por prioridade
             prioridade_counts = df_tickets['prioridade'].value_counts()
             st.markdown("**Distribuição por Prioridade:**")
             st.bar_chart(prioridade_counts)
         
-        # Tabela de resumo por status
         st.markdown("### 📈 Resumo por Status")
         
         status_summary = df_tickets.groupby(['status', 'prioridade']).size().reset_index(name='quantidade')
@@ -227,7 +229,6 @@ def show_admin_statistics():
         
         st.dataframe(status_pivot, use_container_width=True)
         
-        # Top dispositivos detalhado
         st.markdown("### 💻 Análise de Dispositivos")
         
         if stats['dispositivos_mais_solicitados']:
@@ -250,80 +251,45 @@ def show_user_management():
     
     _, _, user_manager = get_database_managers()
     
-    # Lista usuários do sistema
     st.markdown("**Usuários do Sistema:**")
     
     usuarios_info = [
         {"Usuário": "admin", "Perfil": "Administrador", "Email": "admin@maviclick.com", "Status": "Ativo"},
         {"Usuário": "teste", "Perfil": "Usuário", "Email": "teste@maviclick.com", "Status": "Ativo"},
-        {"Usuário": "público", "Perfil": "Convidado", "Email": "publico@mavi.com", "Status": "Ativo"}
     ]
     
     df_usuarios = pd.DataFrame(usuarios_info)
     st.dataframe(df_usuarios, use_container_width=True)
     
-    # Informações de acesso
-    st.markdown("### 🔐 Níveis de Acesso")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("**👑 Administrador**")
-        st.write("- Gerenciar todos os tickets")
-        st.write("- Atualizar status")
-        st.write("- Gerar relatórios")
-        st.write("- Gerenciar usuários")
-        st.write("- Configurações do sistema")
-    
-    with col2:
-        st.markdown("**👤 Usuário**")
-        st.write("- Criar tickets")
-        st.write("- Consultar próprios tickets")
-        st.write("- Visualizar dashboard")
-        st.write("- Receber notificações")
-    
-    with col3:
-        st.markdown("**👥 Público**")
-        st.write("- Criar tickets")
-        st.write("- Consultar tickets por ID")
-        st.write("- Visualizar dashboard público")
-    
-    # Logs de acesso (simulado)
     st.markdown("### 📊 Logs de Acesso Recentes")
     
     logs_acesso = [
         {"Data/Hora": datetime.now().strftime('%d/%m/%Y %H:%M'), "Usuário": st.session_state.user['username'], "Ação": "Login", "IP": "192.168.1.100"},
         {"Data/Hora": "22/01/2025 14:30", "Usuário": "teste", "Ação": "Criou ticket", "IP": "192.168.1.101"},
-        {"Data/Hora": "22/01/2025 13:15", "Usuário": "público", "Ação": "Consultou ticket", "IP": "192.168.1.102"},
     ]
     
     df_logs = pd.DataFrame(logs_acesso)
     st.dataframe(df_logs, use_container_width=True)
 
 def show_system_settings():
-    """Exibe as configurações do sistema"""
     st.markdown("### ⚙️ Configurações do Sistema")
     
-    # Configurações de email
+    # Obtém a instância do serviço de email para ler as configurações atuais
+    email_service = get_email_service()
+
     st.markdown("#### 📧 Configurações de Email")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        smtp_server = st.text_input("Servidor SMTP", value="smtp.gmail.com")
-        smtp_port = st.number_input("Porta SMTP", value=587)
-        email_remetente = st.text_input("Email Remetente", value="gabriel@maviclick.com")
+        # Mostra os valores que estão a ser usados, em vez de valores fixos
+        st.text_input("Servidor SMTP", value=email_service.smtp_server, disabled=True)
+        st.number_input("Porta SMTP", value=email_service.smtp_port, disabled=True)
+        st.text_input("Email Remetente", value=email_service.sender_email, disabled=True)
     
     with col2:
-        email_senha = st.text_input("Senha do Email", type="password", placeholder="Digite a senha")
-        ssl_enabled = st.checkbox("Usar SSL/TLS", value=True)
-        email_ativo = st.checkbox("Email Ativo", value=True)
+        st.text_input("Senha do Email", value="******" if email_service.enabled else "Não configurada", disabled=True, type="password")
     
-    if st.button("💾 Salvar Configurações de Email"):
-        st.success("✅ Configurações de email salvas!")
-        st.info("🔄 Reinicie a aplicação para aplicar as mudanças")
-    
-    # Configurações do sistema
     st.markdown("---")
     st.markdown("#### 🔧 Configurações Gerais")
     
@@ -340,7 +306,6 @@ def show_system_settings():
     if st.button("💾 Salvar Configurações Gerais"):
         st.success("✅ Configurações gerais salvas!")
     
-    # Informações do sistema
     st.markdown("---")
     st.markdown("#### ℹ️ Informações do Sistema")
     
@@ -349,7 +314,7 @@ def show_system_settings():
     with col1:
         st.info(f"""
         **Versão:** 2.0.0 (Streamlit)  
-        **Banco de Dados:** MongoDB  
+        **Banco de Dados:** MySQL  
         **Framework:** Streamlit  
         **Python:** 3.11+  
         **Última Atualização:** {datetime.now().strftime('%d/%m/%Y')}
@@ -364,7 +329,6 @@ def show_system_settings():
         **Última Sincronização:** {datetime.now().strftime('%H:%M')}
         """)
     
-    # Ações do sistema
     st.markdown("---")
     st.markdown("#### 🔧 Ações do Sistema")
     
@@ -377,7 +341,6 @@ def show_system_settings():
     
     with col2:
         if st.button("📊 Exportar Dados", use_container_width=True):
-            # TODO: Implementar exportação
             st.info("🚧 Funcionalidade em desenvolvimento")
     
     with col3:
@@ -388,4 +351,3 @@ def show_system_settings():
     with col4:
         if st.button("📋 Ver Logs", use_container_width=True):
             st.info("🚧 Visualização de logs em desenvolvimento")
-

@@ -12,11 +12,9 @@ class LocalDataManager:
     
     def __init__(self):
         """Inicializa os dados de tickets e usuários na sessão do Streamlit."""
-        # Inicializa a lista de tickets se não existir
         if 'tickets_data' not in st.session_state:
             st.session_state.tickets_data = []
         
-        # Inicializa a lista de usuários padrão se não existir
         if 'users_data' not in st.session_state:
             st.session_state.users_data = [
                 {
@@ -35,7 +33,6 @@ class LocalDataManager:
                 }
             ]
         
-        # Define as listas como atributos para fácil acesso
         self.tickets = st.session_state.tickets_data
         self.users = st.session_state.users_data
 
@@ -51,15 +48,7 @@ class TicketManager:
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
     def criar_ticket(self, dados: Dict[str, Any]) -> Optional[str]:
-        """
-        Cria um novo ticket e o armazena localmente.
-        
-        Args:
-            dados: Dicionário com os dados do ticket.
-        
-        Returns:
-            ID do ticket criado ou None em caso de erro.
-        """
+        """Cria um novo ticket e o armazena localmente."""
         try:
             ticket_id = self._generate_ticket_id()
             
@@ -85,12 +74,10 @@ class TicketManager:
             return None
 
     def obter_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Obtém um ticket pelo ID a partir da lista local.
-        """
+        """Obtém um ticket pelo ID a partir da lista local."""
         try:
             for ticket in self.data_manager.tickets:
-                if ticket["ticket_id"] == ticket_id:
+                if str(ticket.get("ticket_id")) == str(ticket_id):
                     return ticket
             return None
         except Exception as e:
@@ -98,9 +85,7 @@ class TicketManager:
             return None
 
     def listar_tickets(self, filtros: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        """
-        Lista tickets da memória com filtros opcionais.
-        """
+        """Lista tickets da memória com filtros opcionais."""
         try:
             tickets = self.data_manager.tickets.copy()
             
@@ -109,29 +94,29 @@ class TicketManager:
                     if value and value not in ["Todos", "Todas"]:
                         tickets = [t for t in tickets if t.get(key) == value]
             
-            # Ordena pela data de criação, do mais novo para o mais antigo
             return sorted(tickets, key=lambda x: x.get("data_criacao", datetime.min), reverse=True)
             
         except Exception as e:
             st.error(f"Erro ao listar tickets locais: {str(e)}")
             return []
 
+    # vvvvvvvvvvv FUNÇÃO CORRIGIDA vvvvvvvvvvv
     def atualizar_status(self, ticket_id: str, novo_status: str, observacao: str = None) -> bool:
         """
-        Atualiza o status de um ticket na lista local.
+        Atualiza o status de um ticket e adiciona uma observação com o status atual.
         """
         try:
             for ticket in self.data_manager.tickets:
-                if ticket["ticket_id"] == ticket_id:
+                if str(ticket.get("ticket_id")) == str(ticket_id):
                     ticket["status"] = novo_status
                     ticket["data_atualizacao"] = datetime.now()
                     
                     if observacao:
+                        # A CORREÇÃO ESTÁ AQUI: Adicionamos a chave "status" ao dicionário
                         observacao_data = {
                             "data": datetime.now(),
                             "texto": observacao,
-                            "status_anterior": ticket.get("status"), # Pode ser útil
-                            "novo_status": novo_status
+                            "status": novo_status  # <-- Chave adicionada!
                         }
                         if "observacoes" not in ticket:
                             ticket["observacoes"] = []
@@ -141,18 +126,28 @@ class TicketManager:
         except Exception as e:
             st.error(f"Erro ao atualizar ticket local: {str(e)}")
             return False
+    # ^^^^^^^^^^^ FIM DA FUNÇÃO CORRIGIDA ^^^^^^^^^^^
 
     def obter_posicao_fila(self, ticket_id: str) -> int:
         """
-        Obtém a posição do ticket na fila de pendentes.
+        Obtém a posição do ticket na fila de pendentes, ordenando
+        corretamente do mais antigo para o mais novo.
         """
         try:
-            tickets_pendentes = self.listar_tickets({"status": "Pendente"})
+            todos_os_tickets = self.data_manager.tickets.copy()
+            tickets_pendentes = [t for t in todos_os_tickets if t.get("status") == "Pendente"]
             
-            for i, ticket in enumerate(tickets_pendentes):
-                if ticket["ticket_id"] == ticket_id:
+            fila_correta = sorted(
+                tickets_pendentes, 
+                key=lambda x: x.get("data_criacao", datetime.min), 
+                reverse=False
+            )
+            
+            for i, ticket in enumerate(fila_correta):
+                if str(ticket.get("ticket_id")) == str(ticket_id):
                     return i + 1
-            return 0  # Ticket não encontrado na fila de pendentes
+                    
+            return 0
             
         except Exception as e:
             st.error(f"Erro ao obter posição na fila: {str(e)}")
@@ -170,17 +165,14 @@ class TicketManager:
                 "dispositivos_mais_solicitados": {}
             }
             
-            # Conta dispositivos
             dispositivos_contador = {}
             for ticket in tickets:
-                dispositivos = ticket.get("dispositivos", [])
-                if isinstance(dispositivos, list): # Se for uma lista
-                    for dispositivo in dispositivos:
-                        dispositivo = dispositivo.strip()
-                        if dispositivo:
-                           dispositivos_contador[dispositivo] = dispositivos_contador.get(dispositivo, 0) + 1
+                dispositivos_str = ticket.get("dispositivos", "")
+                if isinstance(dispositivos_str, str):
+                    dispositivos_lista = [d.strip() for d in dispositivos_str.split(',') if d.strip()]
+                    for dispositivo in dispositivos_lista:
+                        dispositivos_contador[dispositivo] = dispositivos_contador.get(dispositivo, 0) + 1
             
-            # Ordena dispositivos por quantidade
             stats["dispositivos_mais_solicitados"] = dict(
                 sorted(dispositivos_contador.items(), key=lambda item: item[1], reverse=True)
             )
@@ -194,13 +186,10 @@ class UserManager:
     """Gerenciador de operações de usuários (local)."""
     
     def __init__(self, data_manager: LocalDataManager):
-        """Inicializa com o gerenciador de dados locais."""
         self.data_manager = data_manager
 
     def autenticar_usuario(self, username: str, password: str) -> Optional[Dict[str, Any]]:
-        """
-        Autentica um usuário com base nos dados locais.
-        """
+        """Autentica um usuário com base nos dados locais."""
         try:
             for user in self.data_manager.users:
                 if user["username"] == username and user["password"] == password:
@@ -211,9 +200,7 @@ class UserManager:
             return None
 
     def obter_usuario(self, username: str) -> Optional[Dict[str, Any]]:
-        """
-        Obtém dados de um usuário pelo username.
-        """
+        """Obtém dados de um usuário pelo username."""
         try:
             for user in self.data_manager.users:
                 if user["username"] == username:
@@ -223,18 +210,10 @@ class UserManager:
             st.error(f"Erro ao buscar usuário local: {str(e)}")
             return None
 
-# Instâncias globais (usando cache do Streamlit)
 @st.cache_resource
 def get_database_managers():
-    """
-    Obtém instâncias dos gerenciadores de dados locais.
-    
-    Returns:
-        Tupla com (data_manager, ticket_manager, user_manager)
-    """
+    """Obtém instâncias dos gerenciadores de dados locais."""
     data_manager = LocalDataManager()
     ticket_manager = TicketManager(data_manager)
     user_manager = UserManager(data_manager)
-    
-    # Retornando os 3 gerenciadores para corresponder à chamada em app.py
     return data_manager, ticket_manager, user_manager
