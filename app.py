@@ -2,6 +2,9 @@
 Sistema de Suporte Mavi - Streamlit
 Aplicação principal do sistema de gerenciamento de tickets
 """
+import base64
+from io import BytesIO
+from tkinter import Image
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
@@ -12,6 +15,7 @@ from admin import show_admin_page
 from email_service import get_email_service
 from reports import get_report_generator
 from typing import Dict, Any
+from PIL import Image as PilImage
 
 # Configuração da página
 st.set_page_config(
@@ -147,21 +151,27 @@ def apply_custom_css():
 
 def show_header():
     """Exibe o cabeçalho principal"""
+# --- CARREGAMENTO DA IMAGEM E CONVERSÃO ---
+try:
+    # Use o novo nome 'PilImage' para abrir o arquivo
+    img = PilImage.open("mavi.logo.png")
     
-    st.image("mavi.logo.png", width=300)
-def show_logo():
-    """Exibe o logo da Mavi"""
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        try:
-            st.image("mavi.logo.png", width=300)
-        except:
-            st.markdown("""
-            <div style="text-align: center; padding: 2rem;">
-                <h2 style="color: #00D4AA;">🎯 MAVI</h2>
-                <p style="color: #666;">Logo da empresa</p>
-            </div>
-            """, unsafe_allow_html=True)
+    # O resto do seu código continua igual
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+
+except FileNotFoundError:
+    st.error("Arquivo 'mavi.logo.png' não encontrado. Verifique se o nome e o local estão corretos.")
+    st.stop()
+
+
+# --- CÓDIGO PARA CENTRALIZAR A IMAGEM COM HTML/CSS ---
+st.markdown(f"""
+<div style="display: flex; justify-content: center;">
+    <img src="data:image/png;base64,{img_str}" alt="Mavi Logo" width="300">
+</div>
+""", unsafe_allow_html=True)
 
 def init_session_state():
     """Inicializa o estado da sessão"""
@@ -175,25 +185,19 @@ def init_session_state():
 def show_login_page():
     """Exibe a página de login"""
     show_header()
-    show_logo()
-    
-    st.markdown('<div class="form-container">', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        st.subheader("🔐 Login do Sistema")
-        st.write("Faça login para acessar o sistema de suporte")
+        st.subheader("Login")
         
         with st.form("login_form"):
-            username = st.text_input("👤 Usuário", placeholder="Digite seu usuário")
-            password = st.text_input("🔒 Senha", type="password", placeholder="Digite sua senha")
+            username = st.text_input("Usuário", placeholder="Digite seu usuário")
+            password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
             
             col_a, col_b = st.columns(2)
             with col_a:
-                login_button = st.form_submit_button("🚀 Entrar", use_container_width=True)
-            with col_b:
-                guest_button = st.form_submit_button("👥 Acesso Público", use_container_width=True)
+                login_button = st.form_submit_button("Entrar", use_container_width=True)
             
             if login_button and username and password:
                 # Obtém gerenciadores
@@ -209,31 +213,11 @@ def show_login_page():
                     st.rerun()
                 else:
                     st.error("❌ Usuário ou senha incorretos!")
-            
-            elif guest_button:
-                # Acesso público (sem login)
-                st.session_state.authenticated = True
-                st.session_state.user = {
-                    "username": "público",
-                    "role": "guest",
-                    "email": "publico@mavi.com"
-                }
-                st.success("✅ Acesso público autorizado!")
-                st.rerun()
-        
-        # Informações de login
-        st.markdown("---")
-        st.info("""
-        **Contas de Teste:**
-        - **Admin**: admin / admin123
-        - **Usuário**: teste / teste123
-        - **Público**: Clique em "Acesso Público"
-        """)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_navigation():
-    """Exibe a navegação lateral"""
+    """Exibe a navegação lateral de forma reativa."""
     with st.sidebar:
         st.markdown(f"### 👋 Olá, {st.session_state.user['username']}!")
         
@@ -247,42 +231,56 @@ def show_navigation():
                 "📈 Relatórios",
                 "⚙️ Administração"
             ]
-        elif st.session_state.user['role'] == 'user':
+        # CORREÇÃO: Usando 'user' para consistência
+        elif st.session_state.user['role'] == 'user': 
             pages = [
                 "🏠 Início",
                 "🎫 Nova Solicitação",
                 "🔍 Consultar Ticket", 
-                "📊 Dashboard"
-            ]
-        else:  # guest
-            pages = [
-                "🏠 Início",
-                "🎫 Nova Solicitação",
-                "🔍 Consultar Ticket",
-                "📊 Dashboard"
             ]
         
-        selected_page = st.selectbox("📋 Navegação", pages, key="navigation")
-        st.session_state.current_page = selected_page
+        # --- LÓGICA DE NAVEGAÇÃO CORRIGIDA ---
+
+        # 1. Encontra o índice da página atual para sincronizar o selectbox
+        # Se a página atual não estiver na lista (improvável, mas seguro), volte para o início
+        try:
+            current_page_index = pages.index(st.session_state.current_page)
+        except ValueError:
+            current_page_index = 0
+            st.session_state.current_page = pages[0]
+            
+        # 2. Cria o selectbox, garantindo que ele mostre a página atual
+        selected_page = st.selectbox(
+            "📋 Navegação", 
+            pages, 
+            index=current_page_index, # Garante que o selectbox reflita a página atual
+            key="navigation"
+        )
         
+        # 3. Altera a página SOMENTE se a seleção no selectbox for diferente da página atual
+        if selected_page != st.session_state.current_page:
+            st.session_state.current_page = selected_page
+            st.rerun() # Recarrega para exibir a nova página selecionada
+
+        # O restante da função permanece igual
         st.markdown("---")
         
-        # Informações do usuário
         st.markdown(f"""
         **Perfil:** {st.session_state.user['role'].title()}  
         **Email:** {st.session_state.user['email']}
         """)
         
         if st.button("🚪 Sair", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.user = None
+            # Limpa o estado da sessão ao sair
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
             st.rerun()
 
 def show_home_page():
-    """Exibe a página inicial"""
+    """Exibe a página inicial com ações rápidas baseadas no perfil."""
     show_header()
     
-    # Estatísticas rápidas
+    # --- Seção 1: Estatísticas Rápidas (permanece igual) ---
     _, ticket_manager, _ = get_database_managers()
     stats = ticket_manager.obter_estatisticas()
     
@@ -323,53 +321,101 @@ def show_home_page():
             <p>Concluídos</p>
         </div>
         """, unsafe_allow_html=True)
-    
-    # Ações rápidas
-    st.markdown("### 🚀 Ações Rápidas")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🎫 Criar Novo Ticket", use_container_width=True):
-            st.session_state.current_page = "🎫 Nova Solicitação"
-            st.rerun()
-    
-    with col2:
-        if st.button("🔍 Consultar Ticket", use_container_width=True):
-            st.session_state.current_page = "🔍 Consultar Ticket"
-            st.rerun()
-    
-    with col3:
-        if st.button("📊 Ver Dashboard", use_container_width=True):
-            st.session_state.current_page = "📊 Dashboard"
-            st.rerun()
-    
-    # Informações do sistema
-    st.markdown("### ℹ️ Sobre o Sistema")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.info("""
-        **Sistema de Suporte Mavi**
+
+    st.markdown("---") # Adiciona um separador visual
+
+    # --- Seção 2: Ações Rápidas (Lógica Corrigida e Integrada) ---
+    # CORREÇÃO: A verificação agora usa st.session_state.user['role'], 
+    # que é a forma correta segundo o seu sistema de login.
+
+    # Exibição para o usuário ADMIN
+    if st.session_state.user['role'] == 'admin':
+        st.markdown("### 🚀 Ações Rápidas (Admin)")
         
-        - ✅ Criação de tickets
-        - ✅ Acompanhamento em tempo real
-        - ✅ Relatórios e estatísticas
-        - ✅ Notificações por email
-        - ✅ Interface moderna e responsiva
-        """)
-    
-    with col2:
-        st.success("""
-        **Como Usar:**
+        col1, col2, col3 = st.columns(3)
         
-        1. 🎫 Crie uma nova solicitação
-        2. 📧 Receba confirmação por email
-        3. 🔍 Acompanhe o status do ticket
-        4. 📊 Visualize estatísticas no dashboard
-        5. ✅ Receba notificação quando concluído
-        """)
+        with col1:
+            if st.button("🎫 Criar Novo Ticket", use_container_width=True, key='home_admin_new_ticket'):
+                st.session_state.current_page = "🎫 Nova Solicitação"
+                st.rerun()
+        
+        with col2:
+            if st.button("🔍 Consultar Ticket", use_container_width=True, key='home_admin_consult_ticket'):
+                st.session_state.current_page = "🔍 Consultar Ticket"
+                st.rerun()
+        
+        with col3:
+            if st.button("📊 Ver Dashboard", use_container_width=True, key='home_admin_dashboard'):
+                st.session_state.current_page = "📊 Dashboard"
+                st.rerun()
+                
+        # Informações completas para o admin
+        st.markdown("### ℹ️ Sobre o Sistema")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info("""
+            **Sistema de Suporte Mavi**
+            
+            - ✅ Criação de tickets
+            - ✅ Acompanhamento em tempo real
+            - ✅ Relatórios e estatísticas
+            - ✅ Notificações por email
+            - ✅ Interface moderna e responsiva
+            """)
+        
+        with col2:
+            st.success("""
+            **Como Usar:**
+            
+            1. 🎫 Crie uma nova solicitação
+            2. 📧 Receba confirmação por email
+            3. 🔍 Acompanhe o status do ticket
+            4. 📊 Visualize estatísticas no dashboard
+            5. ✅ Receba notificação quando concluído
+            """)
+
+    # Exibição para o usuário comum ('user')
+    elif st.session_state.user['role'] == 'user':
+        st.markdown("### 🚀 Ações Rápidas")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🎫 Criar Novo Ticket", use_container_width=True, key='home_user_new_ticket'):
+                st.session_state.current_page = "🎫 Nova Solicitação"
+                st.rerun()
+        
+        with col2:
+            if st.button("🔍 Consultar Ticket", use_container_width=True, key='home_user_consult_ticket'):
+                st.session_state.current_page = "🔍 Consultar Ticket"
+                st.rerun()
+                
+        # Informações simplificadas para o usuário
+        st.markdown("### ℹ️ Sobre o Sistema")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info("""
+            **Sistema de Suporte Mavi**
+            
+            - ✅ Criação de tickets
+            - ✅ Acompanhamento em tempo real
+            - ✅ Notificações por email
+            - ✅ Interface moderna e responsiva
+            """)
+        
+        with col2:
+            st.success("""
+            **Como Usar:**
+            
+            1. 🎫 Crie uma nova solicitação
+            2. 📧 Receba confirmação por email
+            3. 🔍 Acompanhe o status do ticket
+            4. ✅ Receba notificação quando concluído
+            """)
 
 def show_new_ticket_page():
     """Exibe a página de nova solicitação"""
@@ -381,21 +427,17 @@ def show_new_ticket_page():
     dispositivos_opcoes = [
         "Notebook/Laptop",
         "Desktop/PC",
-        "Monitor",
         "Teclado",
         "Mouse",
         "Headset/Fone",
         "Webcam",
-        "Impressora",
-        "Scanner",
-        "Tablet",
-        "Smartphone",
         "Acesso VPN",
         "Software específico",
         "Licença de software",
-        "Acesso a sistema",
-        "Configuração de email",
+        "Acesso ao Cubo",
         "Suporte técnico geral",
+        "Bases",
+        "Banco de Dados",
         "Outros"
     ]
     
@@ -420,8 +462,7 @@ def show_new_ticket_page():
                 placeholder="Nome do seu squad leader",
                 value=st.session_state.get('form_squad_leader', '')
             )
-        
-        with col2:
+            
             prioridade = st.selectbox(
                 "⚡ Prioridade *",
                 ["Normal", "Alta", "Urgente"],
