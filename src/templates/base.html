@@ -60,7 +60,7 @@
                 
                 {% if session.user.role == 'admin' %}
                 <li><a href="{{ url_for('dashboard.stats') }}" class="nav-link {% if request.endpoint == 'dashboard.stats' %}active{% endif %}">
-                    <i class="fas fa-chart-bar"></i> Dashboard
+                    <i class="fas fa-chart-bar"></i> Relatório
                 </a></li>
                 <li><a href="{{ url_for('admin.index') }}" class="nav-link {% if request.endpoint == 'admin.index' %}active{% endif %}">
                     <i class="fas fa-cog"></i> Administração
@@ -99,7 +99,7 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <p>&copy; 2024 Mavi Click - Sistema de Suporte. Todos os direitos reservados.</p>
+                <p>&copy; 2025 Mavi Click - Sistema de Suporte. Todos os direitos reservados.</p>
                 <p>Desenvolvido com <i class="fas fa-heart" style="color: #00D4AA;"></i> pela equipe Mavi</p>
             </div>
         </div>
