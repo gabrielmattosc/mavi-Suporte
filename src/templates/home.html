@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Início - Mavi Suporte{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Estatísticas Rápidas -->
+    <div class="metrics">
+        <div class="metric-card">
+            <div class="metric-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h2 class="metric-value">{{ stats.total_tickets }}</h2>
+            <p class="metric-label">Total de Tickets</p>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #ffc107;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h2 class="metric-value">{{ stats.pendentes }}</h2>
+            <p class="metric-label">Pendentes</p>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #17a2b8;">
+                <i class="fas fa-sync-alt"></i>
+            </div>
+            <h2 class="metric-value">{{ stats.em_andamento }}</h2>
+            <p class="metric-label">Em Andamento</p>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #28a745;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="metric-value">{{ stats.concluidos }}</h2>
+            <p class="metric-label">Concluídos</p>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-rocket"></i>
+                Ações Rápidas
+                {% if session.user.role == 'admin' %}(Admin){% endif %}
+            </h2>
+        </div>
+
+        <div class="grid grid-{% if session.user.role == 'admin' %}3{% else %}2{% endif %}">
+            <a href="{{ url_for('ticket.new') }}" class="btn btn-primary" style="padding: 1.5rem; text-align: center; text-decoration: none;">
+                <i class="fas fa-plus" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
+                <strong>Criar Novo Ticket</strong>
+                <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Abra uma nova solicitação</small>
+            </a>
+
+            <a href="{{ url_for('ticket.search') }}" class="btn btn-secondary" style="padding: 1.5rem; text-align: center; text-decoration: none;">
+                <i class="fas fa-search" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
+                <strong>Consultar Ticket</strong>
+                <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Acompanhe suas solicitações</small>
+            </a>
+
+            {% if session.user.role == 'admin' %}
+            <a href="{{ url_for('dashboard.stats') }}" class="btn btn-primary" style="padding: 1.5rem; text-align: center; text-decoration: none; background: linear-gradient(135deg, #17a2b8, #138496);">
+                <i class="fas fa-chart-bar" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
+                <strong>Ver Dashboard</strong>
+                <small style="display: block; margin-top: 0.5rem; opacity: 0.8;">Estatísticas e relatórios</small>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sobre o Sistema -->
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Sistema de Suporte Mavi
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Criação de tickets</p>
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Acompanhamento em tempo real</p>
+                {% if session.user.role == 'admin' %}
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Relatórios e estatísticas</p>
+                {% endif %}
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Notificações por email</p>
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Interface moderna e responsiva</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-question-circle"></i>
+                    Como Usar
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><strong>1.</strong> <i class="fas fa-plus" style="color: var(--mavi-green); margin: 0 0.5rem;"></i> Crie uma nova solicitação</p>
+                <p><strong>2.</strong> <i class="fas fa-envelope" style="color: var(--mavi-green); margin: 0 0.5rem;"></i> Receba confirmação por email</p>
+                <p><strong>3.</strong> <i class="fas fa-search" style="color: var(--mavi-green); margin: 0 0.5rem;"></i> Acompanhe o status do ticket</p>
+                {% if session.user.role == 'admin' %}
+                <p><strong>4.</strong> <i class="fas fa-chart-bar" style="color: var(--mavi-green); margin: 0 0.5rem;"></i> Visualize estatísticas no dashboard</p>
+                {% endif %}
+                <p><strong>{% if session.user.role == 'admin' %}5{% else %}4{% endif %}.</strong> <i class="fas fa-check-circle" style="color: var(--mavi-green); margin: 0 0.5rem;"></i> Receba notificação quando concluído</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets Recentes (apenas para admin) -->
+    {% if session.user.role == 'admin' and recent_tickets %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-history"></i>
+                Tickets Recentes
+            </h3>
+        </div>
+        
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Status</th>
+                        <th>Prioridade</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in recent_tickets %}
+                    <tr>
+                        <td><strong>#{{ ticket.ticket_id }}</strong></td>
+                        <td>{{ ticket.nome }}</td>
+                        <td>
+                            <span class="status-badge status-{{ ticket.status.lower().replace(' ', '-').replace('ã', 'a') }}">
+                                {% if ticket.status == 'Pendente' %}
+                                    <i class="fas fa-clock"></i>
+                                {% elif ticket.status == 'Em andamento' %}
+                                    <i class="fas fa-sync-alt"></i>
+                                {% else %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% endif %}
+                                {{ ticket.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge priority-{{ ticket.prioridade.lower() }}">
+                                {{ ticket.prioridade }}
+                            </span>
+                        </td>
+                        <td>{{ ticket.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

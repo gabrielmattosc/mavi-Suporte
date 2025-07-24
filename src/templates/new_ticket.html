@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Solicitação - Mavi Suporte{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-plus"></i>
+                Nova Solicitação de Suporte
+            </h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('ticket.create') }}" id="ticketForm">
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label for="nome" class="form-label">
+                        <i class="fas fa-user"></i> Nome Completo *
+                    </label>
+                    <input type="text" 
+                           id="nome" 
+                           name="nome" 
+                           class="form-control" 
+                           placeholder="Digite seu nome completo"
+                           required
+                           value="{{ request.form.nome or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope"></i> E-mail *
+                    </label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="seu.email@empresa.com"
+                           required
+                           value="{{ request.form.email or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="squad_leader" class="form-label">
+                        <i class="fas fa-users"></i> Squad Leader *
+                    </label>
+                    <input type="text" 
+                           id="squad_leader" 
+                           name="squad_leader" 
+                           class="form-control" 
+                           placeholder="Nome do seu squad leader"
+                           required
+                           value="{{ request.form.squad_leader or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="prioridade" class="form-label">
+                        <i class="fas fa-exclamation-triangle"></i> Prioridade *
+                    </label>
+                    <select id="prioridade" name="prioridade" class="form-control form-select" required>
+                        <option value="Normal" {% if request.form.prioridade == 'Normal' %}selected{% endif %}>Normal</option>
+                        <option value="Alta" {% if request.form.prioridade == 'Alta' %}selected{% endif %}>Alta</option>
+                        <option value="Urgente" {% if request.form.prioridade == 'Urgente' %}selected{% endif %}>Urgente</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="dispositivos" class="form-label">
+                    <i class="fas fa-laptop"></i> Dispositivos/Serviços Solicitados *
+                </label>
+                <div class="dispositivos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+                    {% set dispositivos_opcoes = [
+                        "Notebook/Laptop",
+                        "Desktop/PC", 
+                        "Teclado",
+                        "Mouse",
+                        "Headset/Fone",
+                        "Webcam",
+                        "Acesso VPN",
+                        "Software específico",
+                        "Licença de software",
+                        "Acesso ao Cubo",
+                        "Suporte técnico geral",
+                        "Bases",
+                        "Banco de Dados",
+                        "Outros"
+                    ] %}
+                    
+                    {% for dispositivo in dispositivos_opcoes %}
+                    <label class="form-checkbox" style="margin-bottom: 0.5rem;">
+                        <input type="checkbox" 
+                               name="dispositivos" 
+                               value="{{ dispositivo }}"
+                               {% if dispositivo in (request.form.getlist('dispositivos') or []) %}checked{% endif %}>
+                        <span>{{ dispositivo }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="necessidade" class="form-label">
+                    <i class="fas fa-clipboard-list"></i> Descrição Detalhada da Necessidade *
+                </label>
+                <textarea id="necessidade" 
+                          name="necessidade" 
+                          class="form-control form-textarea" 
+                          placeholder="Descreva detalhadamente sua necessidade, incluindo contexto e urgência..."
+                          required>{{ request.form.necessidade or '' }}</textarea>
+            </div>
+
+            <div class="form-checkbox">
+                <input type="checkbox" 
+                       id="aceita_termos" 
+                       name="aceita_termos" 
+                       required
+                       {% if request.form.aceita_termos %}checked{% endif %}>
+                <label for="aceita_termos">
+                    Aceito que meus dados sejam utilizados para processamento da solicitação *
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                <a href="{{ url_for('dashboard.home') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    Enviar Solicitação
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Informações Adicionais -->
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informações Importantes
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><i class="fas fa-clock" style="color: #ffc107; margin-right: 0.5rem;"></i> <strong>Tempo de resposta:</strong> Até 24 horas úteis</p>
+                <p><i class="fas fa-envelope" style="color: var(--mavi-green); margin-right: 0.5rem;"></i> <strong>Confirmação:</strong> Você receberá um email com o ID do ticket</p>
+                <p><i class="fas fa-list-ol" style="color: #17a2b8; margin-right: 0.5rem;"></i> <strong>Priorização:</strong> Tickets urgentes são priorizados</p>
+                <p><i class="fas fa-phone" style="color: #dc3545; margin-right: 0.5rem;"></i> <strong>Emergências:</strong> Para casos críticos, entre em contato direto</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-lightbulb"></i>
+                    Dicas para uma Solicitação Eficaz
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Seja específico na descrição do problema</p>
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Inclua informações sobre urgência</p>
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Mencione tentativas de solução já realizadas</p>
+                <p><i class="fas fa-check" style="color: #28a745; margin-right: 0.5rem;"></i> Forneça contexto sobre o impacto no trabalho</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('ticketForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const dispositivos = document.querySelectorAll('input[name="dispositivos"]:checked');
+    
+    if (dispositivos.length === 0) {
+        e.preventDefault();
+        alert('Por favor, selecione pelo menos um dispositivo/serviço.');
+        return;
+    }
+    
+    // Adiciona loading ao botão
+    submitBtn.innerHTML = '<div class="spinner"></div> Enviando...';
+    submitBtn.disabled = true;
+});
+</script>
+{% endblock %}
+

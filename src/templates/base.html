@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mavi Suporte{% endblock %}</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="{{ url_for('static', filename='images/mavi.logo.png') }}" alt="Mavi Logo" class="logo">
+                    <h1 class="logo-text">Mavi Suporte</h1>
+                </div>
+                
+                {% if session.user %}
+                <div class="user-info">
+                    <span class="user-name">
+                        <i class="fas fa-user"></i>
+                        {{ session.user.username }}
+                    </span>
+                    <span class="user-role">{{ session.user.role|title }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    {% if session.user %}
+    <nav class="navigation">
+        <div class="container">
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('dashboard.home') }}" class="nav-link {% if request.endpoint == 'dashboard.home' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Início
+                </a></li>
+                <li><a href="{{ url_for('ticket.new') }}" class="nav-link {% if request.endpoint == 'ticket.new' %}active{% endif %}">
+                    <i class="fas fa-plus"></i> Nova Solicitação
+                </a></li>
+                <li><a href="{{ url_for('ticket.search') }}" class="nav-link {% if request.endpoint == 'ticket.search' %}active{% endif %}">
+                    <i class="fas fa-search"></i> Consultar Ticket
+                </a></li>
+                
+                {% if session.user.role == 'admin' %}
+                <li><a href="{{ url_for('dashboard.stats') }}" class="nav-link {% if request.endpoint == 'dashboard.stats' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </a></li>
+                <li><a href="{{ url_for('admin.index') }}" class="nav-link {% if request.endpoint == 'admin.index' %}active{% endif %}">
+                    <i class="fas fa-cog"></i> Administração
+                </a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                                {{ message }}
+                                <button class="alert-close" onclick="this.parentElement.remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; 2024 Mavi Click - Sistema de Suporte. Todos os direitos reservados.</p>
+                <p>Desenvolvido com <i class="fas fa-heart" style="color: #00D4AA;"></i> pela equipe Mavi</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+

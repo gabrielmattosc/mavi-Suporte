@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Consultar Ticket - Mavi Suporte{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-search"></i>
+                Consultar Ticket
+            </h2>
+        </div>
+
+        <div style="max-width: 500px; margin: 0 auto;">
+            <p style="text-align: center; color: #6c757d; margin-bottom: 2rem;">
+                Digite o ID do seu ticket para consultar o status:
+            </p>
+
+            <form id="searchForm" onsubmit="searchTicket(event)">
+                <div class="form-group">
+                    <label for="ticket_id" class="form-label">
+                        <i class="fas fa-ticket-alt"></i> ID do Ticket
+                    </label>
+                    <input type="text" 
+                           id="ticket_id" 
+                           name="ticket_id" 
+                           class="form-control" 
+                           placeholder="Ex: ABC12345"
+                           style="text-transform: uppercase;"
+                           required
+                           maxlength="8">
+                    <small style="color: #6c757d; margin-top: 0.5rem; display: block;">
+                        O ID do ticket foi enviado por email quando você criou a solicitação
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                    Consultar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Informações sobre consulta -->
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    Como Consultar
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><i class="fas fa-envelope" style="color: var(--mavi-green); margin-right: 0.5rem;"></i> <strong>ID por Email:</strong> O ID foi enviado quando você criou o ticket</p>
+                <p><i class="fas fa-key" style="color: var(--mavi-green); margin-right: 0.5rem;"></i> <strong>Formato:</strong> 8 caracteres (letras e números)</p>
+                <p><i class="fas fa-clock" style="color: var(--mavi-green); margin-right: 0.5rem;"></i> <strong>Disponibilidade:</strong> Consulte a qualquer momento</p>
+                <p><i class="fas fa-shield-alt" style="color: var(--mavi-green); margin-right: 0.5rem;"></i> <strong>Privacidade:</strong> Apenas você pode ver seus tickets</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-question-circle"></i>
+                    Não Encontrou o ID?
+                </h3>
+            </div>
+            
+            <div style="color: #6c757d; line-height: 1.8;">
+                <p><i class="fas fa-inbox" style="color: #ffc107; margin-right: 0.5rem;"></i> Verifique sua caixa de entrada</p>
+                <p><i class="fas fa-folder" style="color: #ffc107; margin-right: 0.5rem;"></i> Confira a pasta de spam/lixo eletrônico</p>
+                <p><i class="fas fa-at" style="color: #ffc107; margin-right: 0.5rem;"></i> Procure por emails de "mavisuporte@gmail.com"</p>
+                <p><i class="fas fa-phone" style="color: #ffc107; margin-right: 0.5rem;"></i> Entre em contato conosco se necessário</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exemplos de status -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list"></i>
+                Status dos Tickets
+            </h3>
+        </div>
+        
+        <div class="grid grid-3">
+            <div style="text-align: center; padding: 1rem;">
+                <span class="status-badge status-pendente" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                    <i class="fas fa-clock"></i> Pendente
+                </span>
+                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.875rem;">
+                    Sua solicitação foi recebida e está na fila para análise
+                </p>
+            </div>
+            
+            <div style="text-align: center; padding: 1rem;">
+                <span class="status-badge status-em-andamento" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                    <i class="fas fa-sync-alt"></i> Em Andamento
+                </span>
+                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.875rem;">
+                    Nossa equipe está trabalhando na sua solicitação
+                </p>
+            </div>
+            
+            <div style="text-align: center; padding: 1rem;">
+                <span class="status-badge status-concluida" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                    <i class="fas fa-check-circle"></i> Concluída
+                </span>
+                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.875rem;">
+                    Sua solicitação foi finalizada com sucesso
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function searchTicket(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const ticketId = form.ticket_id.value.trim().toUpperCase();
+    const searchBtn = document.getElementById('searchBtn');
+    
+    if (!ticketId) {
+        showNotification('Por favor, digite o ID do ticket.', 'warning');
+        return;
+    }
+    
+    // Adiciona loading
+    const originalText = searchBtn.innerHTML;
+    searchBtn.innerHTML = '<div class="spinner"></div> Consultando...';
+    searchBtn.disabled = true;
+    
+    // Simula busca (substitua pela chamada real da API)
+    fetch('{{ url_for("ticket.api_search") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `ticket_id=${encodeURIComponent(ticketId)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showNotification('Erro ao consultar ticket. Tente novamente.', 'error');
+    })
+    .finally(() => {
+        // Restaura botão
+        searchBtn.innerHTML = originalText;
+        searchBtn.disabled = false;
+    });
+}
+
+// Auto-uppercase no input
+document.getElementById('ticket_id').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+</script>
+{% endblock %}
+
