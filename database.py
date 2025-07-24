@@ -33,8 +33,15 @@ class LocalDataManager:
                 }
             ]
         
+        # --- CORREÇÃO APLICADA AQUI ---
+        # Inicializa a lista de logs se ela não existir
+        if 'logs_data' not in st.session_state:
+            st.session_state.logs_data = []
+            
         self.tickets = st.session_state.tickets_data
         self.users = st.session_state.users_data
+        # Cria o atributo .logs para que o LogManager possa encontrá-lo
+        self.logs = st.session_state.logs_data
 
 class TicketManager:
     """Gerenciador de operações de tickets (local)."""
@@ -210,10 +217,37 @@ class UserManager:
             st.error(f"Erro ao buscar usuário local: {str(e)}")
             return None
 
+# --- NOVA CLASSE PARA GERENCIAR LOGS ---
+class LogManager:
+    """Gerenciador de operações de logs (local)."""
+    def __init__(self, data_manager: LocalDataManager):
+        self.data_manager = data_manager
+
+    def registrar_log(self, usuario: str, acao: str, detalhes: str = ""):
+        """Registra uma nova entrada de log."""
+        try:
+            log_entry = {
+                "timestamp": datetime.now(),
+                "usuario": usuario,
+                "acao": acao,
+                "detalhes": detalhes
+            }
+            self.data_manager.logs.append(log_entry)
+        except Exception as e:
+            print(f"Erro ao registrar log: {e}")
+
+    def listar_logs(self) -> List[Dict[str, Any]]:
+        """Lista todos os logs, do mais recente para o mais antigo."""
+        return sorted(self.data_manager.logs, key=lambda x: x['timestamp'], reverse=True)
+
 @st.cache_resource
 def get_database_managers():
-    """Obtém instâncias dos gerenciadores de dados locais."""
+    """Obtém instâncias de todos os gerenciadores de dados locais."""
     data_manager = LocalDataManager()
     ticket_manager = TicketManager(data_manager)
     user_manager = UserManager(data_manager)
-    return data_manager, ticket_manager, user_manager
+    # --- NOVO: Adiciona o gerenciador de logs ---
+    log_manager = LogManager(data_manager)
+    
+    # --- ATUALIZADO: Retorna 4 gerenciadores agora ---
+    return data_manager, ticket_manager, user_manager, log_manager

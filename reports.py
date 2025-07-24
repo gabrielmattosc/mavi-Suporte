@@ -81,7 +81,7 @@ class ReportGenerator:
         """Exibe dashboard avançado com gráficos interativos"""
         st.markdown("### 📊 Dashboard Avançado")
         
-        _, ticket_manager, _ = get_database_managers()
+        _, ticket_manager, _, _ = get_database_managers()
         
         # Obtém dados
         tickets = ticket_manager.listar_tickets()
@@ -224,7 +224,7 @@ class ReportGenerator:
     
     def _show_chart_details(self):
         """Exibe detalhes dos gráficos quando solicitado"""
-        _, ticket_manager, _ = get_database_managers()
+        _, ticket_manager, _, _ = get_database_managers()
         
         # Detalhes por status
         if st.session_state.get('show_status_details', False):
@@ -317,7 +317,7 @@ class ReportGenerator:
         """Exibe análises detalhadas e opções de exportação"""
         st.markdown("### 📋 Análises Detalhadas")
         
-        _, ticket_manager, _ = get_database_managers()
+        _, ticket_manager, _, _ = get_database_managers()
         
         tickets = ticket_manager.listar_tickets()
         
@@ -453,6 +453,9 @@ class ReportGenerator:
         if st.button("📄 Gerar Relatório PDF", use_container_width=True):
             with st.spinner("Gerando relatório PDF..."):
                 try:
+                    
+                    _, _, _, log_manager = get_database_managers()
+                    
                     # Gera PDF
                     pdf_buffer = self.generate_pdf_report(
                         tipo_relatorio=tipo_relatorio,
@@ -463,11 +466,17 @@ class ReportGenerator:
                     )
                     
                     if pdf_buffer:
+                        
+                        # --- NOVO: Registra o log de sucesso ---
+                        log_manager.registrar_log(
+                            st.session_state.user['username'],
+                            "Geração de Relatório",
+                            f"Tipo: {tipo_relatorio}"
+                        )                        
+                        
                         # Disponibiliza para download
                         st.success("✅ Relatório PDF gerado com sucesso!")
-                        
                         filename = f"relatorio_mavi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        
                         st.download_button(
                             label="📥 Baixar Relatório PDF",
                             data=pdf_buffer.getvalue(),
@@ -514,7 +523,7 @@ class ReportGenerator:
             story.append(Spacer(1, 20))
             
             # Obtém dados
-            _, ticket_manager, _ = get_database_managers()
+            _, ticket_manager, _, _ = get_database_managers()
             
             # Aplica filtros de período se necessário
             if data_inicio and data_fim:

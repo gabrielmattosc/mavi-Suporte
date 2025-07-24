@@ -41,105 +41,79 @@ def show_ticket_management():
     """Exibe o gerenciamento de tickets"""
     st.markdown("### 🎫 Gerenciamento de Tickets")
     
-    _, ticket_manager, _ = get_database_managers()
+    # Pega os 4 gerenciadores
+    _, ticket_manager, _, log_manager = get_database_managers()
     
     # Filtros
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        status_filter = st.selectbox(
-            "Filtrar por Status",
-            ["Todos", "Pendente", "Em andamento", "Concluída"]
-        )
-    
+        status_filter = st.selectbox("Filtrar por Status", ["Todos", "Pendente", "Em andamento", "Concluída"])
     with col2:
-        prioridade_filter = st.selectbox(
-            "Filtrar por Prioridade",
-            ["Todas", "Normal", "Alta", "Urgente"]
-        )
-    
+        prioridade_filter = st.selectbox("Filtrar por Prioridade", ["Todas", "Normal", "Alta", "Urgente"])
     with col3:
+        st.write("") # Espaçamento
         if st.button("🔄 Atualizar Lista"):
             st.rerun()
     
-    # Aplica filtros
     filtros = {}
     if status_filter != "Todos":
         filtros["status"] = status_filter
     if prioridade_filter != "Todas":
         filtros["prioridade"] = prioridade_filter
     
-    # Lista tickets
     tickets = ticket_manager.listar_tickets(filtros)
     
-    if tickets:
-        # Prepara dados para exibição
+    if not tickets:
+        st.info("📋 Nenhum ticket encontrado com os filtros aplicados.")
+    else:
+        # Prepara e exibe o DataFrame
         df_tickets = pd.DataFrame(tickets)
-        
-        colunas_exibicao = ['ticket_id', 'nome', 'email', 'dispositivos', 'status', 'prioridade', 'data_criacao']
+        colunas_exibicao = ['ticket_id', 'nome', 'status', 'prioridade', 'data_criacao']
         df_display = df_tickets[colunas_exibicao].copy()
-        
         df_display['data_criacao'] = pd.to_datetime(df_display['data_criacao']).dt.strftime('%d/%m/%Y %H:%M')
-        
-        df_display.columns = ['ID', 'Nome', 'Email', 'Dispositivos', 'Status', 'Prioridade', 'Data']
-        
+        df_display.columns = ['ID', 'Nome', 'Status', 'Prioridade', 'Data']
         st.dataframe(df_display, use_container_width=True)
         
-        # Seção de atualização de status
         st.markdown("---")
         st.markdown("### ✏️ Atualizar Status do Ticket")
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns([2, 2, 3, 1])
         
-        with col1:
-            ticket_ids = [t['ticket_id'] for t in tickets]
-            selected_ticket = st.selectbox("Selecionar Ticket", ticket_ids)
+        ticket_ids = [t['ticket_id'] for t in tickets]
+        selected_ticket_id = col1.selectbox("Selecionar Ticket", ticket_ids)
+        novo_status = col2.selectbox("Novo Status", ["Pendente", "Em andamento", "Concluída"])
+        observacao = col3.text_input("Observação (opcional)")
         
-        with col2:
-            novo_status = st.selectbox(
-                "Novo Status", 
-                ["Pendente", "Em andamento", "Concluída"]
-            )
-        
-        with col3:
-            observacao = st.text_input("Observação (opcional)")
-        
-        with col4:
-            st.write("")
-            if st.button("💾 Atualizar Status"):
-                if ticket_manager.atualizar_status(selected_ticket, novo_status, observacao):
-                    st.success(f"✅ Status do ticket #{selected_ticket} atualizado!")
-                    
-                    ticket_detalhes = ticket_manager.obter_ticket(selected_ticket)
-                    if ticket_detalhes:
-                        from email_service import get_email_service
-                        email_service = get_email_service()
-                        
-                        if email_service.enabled:
-                            email_enviado = email_service.enviar_atualizacao_status(
-                                ticket_detalhes['email'],
-                                selected_ticket,
-                                novo_status,
-                                observacao
-                            )
-                            
-                            if email_enviado:
-                                st.info("📧 Email de atualização enviado ao usuário!")
-                            else:
-                                st.warning("⚠️ Não foi possível enviar o email de atualização")
-                        else:
-                            st.info("📧 Configure a senha do email para ativar notificações")
-                    
-                    st.rerun()
-                else:
-                    st.error("❌ Erro ao atualizar status!")
+        col4.write("")
+        col4.write("")
+        update_button = col4.button("💾 Atualizar")
+
+        if update_button:
+            if ticket_manager.atualizar_status(selected_ticket_id, novo_status, observacao):
+                log_manager.registrar_log(
+                    st.session_state.user['username'],
+                    "Atualização de Status",
+                    f"Ticket #{selected_ticket_id} para '{novo_status}'"
+                )
+                st.success(f"✅ Status do ticket #{selected_ticket_id} atualizado!")
+                
+                ticket_detalhes = ticket_manager.obter_ticket(selected_ticket_id)
+                if ticket_detalhes:
+                    email_service = get_email_service()
+                    if email_service.enabled:
+                        email_service.enviar_atualizacao_status(
+                            ticket_detalhes['email'], selected_ticket_id, novo_status, observacao
+                        )
+                st.rerun()
+            else:
+                st.error("❌ Erro ao atualizar status!")
         
         # Detalhes do ticket selecionado
-        if selected_ticket:
-            ticket_detalhes = ticket_manager.obter_ticket(selected_ticket)
+        if selected_ticket_id:
+            ticket_detalhes = ticket_manager.obter_ticket(selected_ticket_id)
             if ticket_detalhes:
                 st.markdown("---")
-                st.markdown(f"### 📋 Detalhes do Ticket #{selected_ticket}")
+                st.markdown(f"### 📋 Detalhes do Ticket #{selected_ticket_id}")
                 
                 col1, col2 = st.columns(2)
                 
@@ -162,32 +136,22 @@ def show_ticket_management():
                 st.markdown("**Descrição da Necessidade:**")
                 st.write(ticket_detalhes.get('necessidade', 'Nenhuma'))
                 
-                # Observações
                 if ticket_detalhes.get('observacoes'):
                     st.markdown("**Histórico de Observações:**")
                     for obs in ticket_detalhes['observacoes']:
-                        # vvvvvvvvvvv LÓGICA DE EXIBIÇÃO CORRIGIDA vvvvvvvvvvv
                         obs_data_str = obs.get('data', datetime.now()).strftime('%d/%m/%Y %H:%M')
                         obs_texto = obs.get('texto', '')
-
-                        # Verifica se a chave 'status' existe na observação
                         if 'status' in obs:
-                            # Se existir, mostra o status que foi registrado
                             status_obs = obs['status']
                             st.write(f"- **{obs_data_str}**: {obs_texto} (Status alterado para: {status_obs})")
                         else:
-                            # Se não existir (observação antiga), mostra apenas o texto
                             st.write(f"- **{obs_data_str}**: {obs_texto}")
-                        # ^^^^^^^^^^^ FIM DA LÓGICA CORRIGIDA ^^^^^^^^^^^
-    
-    else:
-        st.info("📋 Nenhum ticket encontrado com os filtros aplicados.")
 
 def show_admin_statistics():
     """Exibe estatísticas administrativas"""
     st.markdown("### 📊 Estatísticas Detalhadas")
     
-    _, ticket_manager, _ = get_database_managers()
+    _, ticket_manager, _, _ = get_database_managers()
     
     stats = ticket_manager.obter_estatisticas()
     tickets = ticket_manager.listar_tickets()
@@ -245,36 +209,50 @@ def show_admin_statistics():
     else:
         st.info("📊 Nenhum dado disponível para análise.")
 
+# vvvvvvvvvvv FUNÇÃO ATUALIZADA vvvvvvvvvvv
 def show_user_management():
-    """Exibe o gerenciamento de usuários"""
+    """Exibe o gerenciamento de usuários e os logs de acesso."""
     st.markdown("### 👥 Gerenciamento de Usuários")
     
-    _, _, user_manager = get_database_managers()
+    # ATUALIZADO: Pega o log_manager
+    _, _, user_manager, log_manager = get_database_managers()
     
     st.markdown("**Usuários do Sistema:**")
     
+    # O DataFrame de usuários pode ser mantido como está
     usuarios_info = [
         {"Usuário": "admin", "Perfil": "Administrador", "Email": "admin@maviclick.com", "Status": "Ativo"},
         {"Usuário": "teste", "Perfil": "Usuário", "Email": "teste@maviclick.com", "Status": "Ativo"},
     ]
-    
     df_usuarios = pd.DataFrame(usuarios_info)
     st.dataframe(df_usuarios, use_container_width=True)
     
-    st.markdown("### 📊 Logs de Acesso Recentes")
+    st.markdown("---")
+    st.markdown("### 📊 Logs de Acesso e Ações Recentes")
     
-    logs_acesso = [
-        {"Data/Hora": datetime.now().strftime('%d/%m/%Y %H:%M'), "Usuário": st.session_state.user['username'], "Ação": "Login", "IP": "192.168.1.100"},
-        {"Data/Hora": "22/01/2025 14:30", "Usuário": "teste", "Ação": "Criou ticket", "IP": "192.168.1.101"},
-    ]
+    # Pega os logs reais do LogManager
+    logs = log_manager.listar_logs()
     
-    df_logs = pd.DataFrame(logs_acesso)
-    st.dataframe(df_logs, use_container_width=True)
+    if logs:
+        # Converte os logs para um DataFrame do Pandas para fácil exibição
+        df_logs = pd.DataFrame(logs)
+        
+        # Formata a coluna de data/hora para ficar mais legível
+        df_logs['timestamp'] = pd.to_datetime(df_logs['timestamp']).dt.strftime('%d/%m/%Y %H:%M:%S')
+        
+        # Renomeia as colunas para a exibição
+        df_logs.columns = ['Data/Hora', 'Usuário', 'Ação', 'Detalhes']
+        
+        # Exibe a tabela de logs
+        st.dataframe(df_logs, use_container_width=True)
+    else:
+        st.info("Nenhuma atividade registrada ainda.")
+# ^^^^^^^^^^^ FIM DA FUNÇÃO ATUALIZADA ^^^^^^^^^^^
 
 def show_system_settings():
     st.markdown("### ⚙️ Configurações do Sistema")
     
-    # Obtém a instância do serviço de email para ler as configurações atuais
+    _, _, _, log_manager = get_database_managers() # Precisa desempacotar 4
     email_service = get_email_service()
 
     st.markdown("#### 📧 Configurações de Email")
@@ -321,11 +299,16 @@ def show_system_settings():
         """)
     
     with col2:
+        # --- LÓGICA ATUALIZADA ---
+        # Conta 1 se o utilizador estiver na sessão, caso contrário, 0.
+        usuarios_conectados = 1 if st.session_state.get('authenticated') else 0
+        
+        _, ticket_manager, _, _ = get_database_managers()
         st.success(f"""
         **Status:** Online ✅  
         **Uptime:** Ativo  
-        **Usuários Conectados:** 1  
-        **Tickets Ativos:** {get_database_managers()[1].obter_estatisticas()['total_tickets']}  
+        **Usuários Conectados:** {usuarios_conectados}  
+        **Tickets Ativos:** {ticket_manager.obter_estatisticas().get('total_tickets', 0)}  
         **Última Sincronização:** {datetime.now().strftime('%H:%M')}
         """)
     

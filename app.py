@@ -187,32 +187,32 @@ def show_login_page():
     show_header()
     
     col1, col2, col3 = st.columns([1, 2, 1])
-    
     with col2:
-        st.subheader("Login")
-        
-        with st.form("login_form"):
-            username = st.text_input("Usuário", placeholder="Digite seu usuário")
-            password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
-            
-            col_a, col_b = st.columns(2)
-            with col_a:
+            st.subheader("Login")
+            with st.form("login_form"):
+                username = st.text_input("Usuário", placeholder="Digite seu usuário")
+                password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
                 login_button = st.form_submit_button("Entrar", use_container_width=True)
-            
-            if login_button and username and password:
-                # Obtém gerenciadores
-                _, _, user_manager = get_database_managers()
                 
-                # Autentica usuário
-                user = user_manager.autenticar_usuario(username, password)
-                
-                if user:
-                    st.session_state.authenticated = True
-                    st.session_state.user = user
-                    st.success(f"✅ Bem-vindo, {user['username']}!")
-                    st.rerun()
-                else:
-                    st.error("❌ Usuário ou senha incorretos!")
+                if login_button:
+                    if not username or not password:
+                        st.error("Por favor, preencha o usuário e a senha.")
+                    else:
+                        # ATUALIZADO: Pega o log_manager
+                        _, _, user_manager, log_manager = get_database_managers()
+                        user = user_manager.autenticar_usuario(username, password)
+                        
+                        if user:
+                            st.session_state.authenticated = True
+                            st.session_state.user = user
+                            # NOVO: Registra o log de login
+                            log_manager.registrar_log(user['username'], "Login bem-sucedido")
+                            st.success(f"✅ Bem-vindo, {user['username']}!")
+                            st.rerun()
+                        else:
+                            # NOVO: Registra a tentativa de login falha
+                            log_manager.registrar_log(username, "Tentativa de login falhou")
+                            st.error("❌ Usuário ou senha incorretos!")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -268,7 +268,7 @@ def show_home_page():
     show_header()
     
     # --- Seção 1: Estatísticas Rápidas (permanece igual) ---
-    _, ticket_manager, _ = get_database_managers()
+    _, ticket_manager, _, _ = get_database_managers()
     stats = ticket_manager.obter_estatisticas()
     
     col1, col2, col3, col4 = st.columns(4)
@@ -491,7 +491,7 @@ def show_new_ticket_page():
                 st.error("❌ Por favor, preencha todos os campos obrigatórios e aceite os termos.")
             else:
                 # Cria o ticket
-                _, ticket_manager, _ = get_database_managers()
+                _, ticket_manager, _, log_manager = get_database_managers()
                 
                 dados_ticket = {
                     "nome": nome,
@@ -584,7 +584,7 @@ def show_search_ticket_page():
         
         if st.button("🔍 Consultar", use_container_width=True):
             if ticket_id:
-                _, ticket_manager, _ = get_database_managers()
+                _, ticket_manager, _, _ = get_database_managers()
                 ticket = ticket_manager.obter_ticket(ticket_id)
                 
                 if ticket:
@@ -636,7 +636,8 @@ def show_dashboard_page():
     """Exibe a página do dashboard"""
     st.subheader("📊 Dashboard de Suporte")
     
-    _, ticket_manager, _ = get_database_managers()
+    _, ticket_manager, _, _ = get_database_managers()
+    stats = ticket_manager.obter_estatisticas()
     
     # Estatísticas
     stats = ticket_manager.obter_estatisticas()
