@@ -1,8 +1,9 @@
-streamlit>=1.28.0
-pymongo>=4.5.0
+Flask>=2.0
+Flask-Session>=0.4
+Flask-Mail>=0.9
+pymongo>=4.5
 plotly>=5.15.0
 pandas>=2.0.0
 reportlab>=4.0.0
 Pillow>=10.0.0
 python-dateutil>=2.8.0
-
