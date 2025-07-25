@@ -15,6 +15,7 @@ from src.routes.auth_routes import auth_bp
 from src.routes.ticket_routes import ticket_bp
 from src.routes.admin_routes import admin_bp
 from src.routes.dashboard_routes import dashboard_bp
+from src.routes.graphic_routes import graphics_bp
 
 def create_app():
     """Factory function para criar a aplicação Flask"""
@@ -38,6 +39,7 @@ def create_app():
     app.register_blueprint(ticket_bp, url_prefix='/tickets')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(graphics_bp, url_prefix='/graphic')
     
     # Rota principal
     @app.route('/')
