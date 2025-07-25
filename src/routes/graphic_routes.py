@@ -36,7 +36,7 @@ def get_all_graphics():
             values=status_counts.values, names=status_counts.index,
             color_discrete_sequence=['#ffc107', '#17a2b8', '#28a745']
         )
-        fig_status.update_layout(title_text='Distribuição por Status', title_x=0.5)
+
         graph_status_json = json.dumps(fig_status, cls=plotly.utils.PlotlyJSONEncoder)
 
         # Gráfico de Barras: Dispositivos
@@ -48,7 +48,6 @@ def get_all_graphics():
                 dispositivos_df, x='Quantidade', y='Dispositivo', orientation='h',
                 color_discrete_sequence=['#00D4AA']
             )
-            fig_dispositivos.update_layout(title_text='Top Dispositivos Solicitados', title_x=0.5)
             graph_dispositivos_json = json.dumps(fig_dispositivos, cls=plotly.utils.PlotlyJSONEncoder)
 
         # Gráfico de Linha: Timeline
@@ -58,7 +57,6 @@ def get_all_graphics():
             timeline_data, x='data', y='quantidade', markers=True,
             color_discrete_sequence=['#00B894']
         )
-        fig_timeline.update_layout(title_text='Tickets Criados por Dia', title_x=0.5)
         graph_timeline_json = json.dumps(fig_timeline, cls=plotly.utils.PlotlyJSONEncoder)
 
         return jsonify({

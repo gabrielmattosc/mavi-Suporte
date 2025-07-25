@@ -6,15 +6,12 @@
 <div class="container fade-in">
     <!-- Título da Página -->
     <header>
-        <h1>Relatórios e Análises</h1>
+        <h1>📈 Relatórios e Análises</h1>
     </header>
 
     {% if error %}
         <div class="error-message">{{ error }}</div>
     {% else %}
-        <!-- Seção de Métricas foi REMOVIDA -->
-
-        <!-- Seção de Gráficos (visível APENAS para administradores) -->
         {% if session.user.role == 'admin' %}
         <div class="card">
             <div class="card-header">
@@ -23,80 +20,74 @@
                     Dashboard Avançado
                 </h2>
             </div>
-            <!-- Placeholders para os gráficos que serão preenchidos via JavaScript -->
-            <div class="charts-grid">
-                <div class="chart-card" id="status-chart-container">
-                    <p class="loading-text">A carregar gráfico de status...</p>
+            
+            <!-- vvvvv NOVO LAYOUT APLICADO AQUI vvvvv -->
+            <div class="card-content">
+                <!-- Linha de Cima: Dois gráficos médios -->
+                <div class="charts-grid-2">
+                    <div class="chart-card">
+                        <h3>Distribuição por Status</h3>
+                        <div class="chart-container" id="status-chart-container">
+                            <p class="loading-text">A carregar...</p>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top Dispositivos Solicitados</h3>
+                        <div class="chart-container" id="dispositivos-chart-container">
+                            <p class="loading-text">A carregar...</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="chart-card" id="dispositivos-chart-container">
-                    <p class="loading-text">A carregar gráfico de dispositivos...</p>
+
+                <!-- Linha de Baixo: Um gráfico grande -->
+                <div class="timeline-section">
+                    <div class="chart-card">
+                        <h3>Tickets Criados por Dia</h3>
+                        <div class="chart-container" id="timeline-chart-container">
+                            <p class="loading-text">A carregar...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="timeline-section">
-                <div class="chart-card" id="timeline-chart-container">
-                    <p class="loading-text">A carregar timeline...</p>
-                </div>
-            </div>
+            <!-- ^^^^^ FIM DO NOVO LAYOUT ^^^^^ -->
+
         </div>
         {% endif %}
     {% endif %}
 </div>
 
-<!-- Script para renderizar os gráficos (só executa se o utilizador for admin) -->
+<!-- Script para renderizar os gráficos (não precisa de ser alterado) -->
 {% if session.user.role == 'admin' and not error %}
-<!-- Inclui a biblioteca Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
-    // Executa o script depois de a página carregar
     document.addEventListener('DOMContentLoaded', function() {
-        // URL da nova API de gráficos
         const apiUrl = "{{ url_for('graphics.get_all_graphics') }}";
 
-        // Faz a chamada à API para buscar os dados dos gráficos
         fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro de rede ao buscar dados dos gráficos.');
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                // Renderiza o gráfico de Status
                 const statusContainer = document.getElementById('status-chart-container');
                 if (data.status) {
                     const graphStatus = JSON.parse(data.status);
-                    statusContainer.innerHTML = ''; // Limpa a mensagem "A carregar..."
+                    statusContainer.innerHTML = '';
                     Plotly.newPlot(statusContainer, graphStatus.data, graphStatus.layout, {responsive: true});
-                } else {
-                    statusContainer.innerHTML = '<p class="error-text">Não foi possível carregar o gráfico de status.</p>';
-                }
+                } else { statusContainer.innerHTML = '<p class="error-text">Erro ao carregar.</p>'; }
 
-                // Renderiza o gráfico de Dispositivos
                 const dispositivosContainer = document.getElementById('dispositivos-chart-container');
                 if (data.dispositivos) {
                     const graphDispositivos = JSON.parse(data.dispositivos);
                     dispositivosContainer.innerHTML = '';
                     Plotly.newPlot(dispositivosContainer, graphDispositivos.data, graphDispositivos.layout, {responsive: true});
-                } else {
-                    dispositivosContainer.innerHTML = '<p>Nenhum dado de dispositivo para exibir.</p>';
-                }
+                } else { dispositivosContainer.innerHTML = '<p>Nenhum dado.</p>'; }
 
-                // Renderiza o gráfico de Timeline
                 const timelineContainer = document.getElementById('timeline-chart-container');
                 if (data.timeline) {
                     const graphTimeline = JSON.parse(data.timeline);
                     timelineContainer.innerHTML = '';
                     Plotly.newPlot(timelineContainer, graphTimeline.data, graphTimeline.layout, {responsive: true});
-                } else {
-                    timelineContainer.innerHTML = '<p class="error-text">Não foi possível carregar a timeline.</p>';
-                }
+                } else { timelineContainer.innerHTML = '<p class="error-text">Erro ao carregar.</p>'; }
             })
-            .catch(error => {
-                console.error('Erro:', error);
-                document.getElementById('status-chart-container').innerHTML = '<p class="error-text">Falha ao carregar gráficos.</p>';
-                document.getElementById('dispositivos-chart-container').innerHTML = '';
-                document.getElementById('timeline-chart-container').innerHTML = '';
-            });
+            .catch(error => console.error('Erro:', error));
     });
 </script>
 {% endif %}
