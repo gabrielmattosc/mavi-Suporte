@@ -16,7 +16,7 @@ class EmailService:
         """Inicializa o serviço de email"""
         self.smtp_server = "smtp.gmail.com"
         self.smtp_port = 587
-        self.email_usuario = "mavisuporte@gmail.com"
+        self.email_usuario = "gabrielmattoscosta4@gmail.com"
         self.email_senha = os.getenv("EMAIL_PASSWORD", "")
         self.enabled = bool(self.email_senha)
     
@@ -89,7 +89,7 @@ class EmailService:
                     
                     <div class="footer">
                         <p>Este é um email automático. Por favor, não responda.</p>
-                        <p>© 2024 Mavi Click - Sistema de Suporte</p>
+                        <p>© 2025 Mavi Click - Sistema de Suporte</p>
                     </div>
                 </div>
             </body>
@@ -108,7 +108,7 @@ class EmailService:
             return False
         
         try:
-            email_admin = "admin@maviclick.com"
+            email_admin = "gabrielmattoscosta4@gmail.com"
             assunto = f"🔔 Novo Ticket #{ticket_id} - Mavi Suporte"
             
             corpo_html = f"""

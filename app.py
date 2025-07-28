@@ -4,7 +4,17 @@ Aplicação principal do sistema de gerenciamento de tickets
 """
 import os
 import sys
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+# --- ADICIONE ESTE TESTE ---
+print("--- Teste de .env ---")
+print(f"EMAIL_USER: {os.getenv('EMAIL_USER')}")
+print(f"EMAIL_PASSWORD: {'*' * len(os.getenv('EMAIL_PASSWORD', '')) if os.getenv('EMAIL_PASSWORD') else 'NÃO ENCONTRADA'}")
+print("---------------------")
+# --- FIM DO TESTE ---
 # Adiciona o diretório raiz ao path
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -17,6 +27,7 @@ from src.routes.admin_routes import admin_bp
 from src.routes.dashboard_routes import dashboard_bp
 from src.routes.graphic_routes import graphics_bp
 from src.routes.export_routes import export_bp
+
 def create_app():
     """Factory function para criar a aplicação Flask"""
     app = Flask(__name__, 
@@ -52,4 +63,3 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5000, debug=True)
-
