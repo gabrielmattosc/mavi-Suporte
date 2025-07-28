@@ -708,3 +708,73 @@ body {
     transform: translateY(-2px); /* Efeito de elevação */
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
+
+/*ABA SUCESS TICKET*/
+.success-card {
+        max-width: 800px;
+        margin: 40px auto;
+        border: 1px solid #e9ecef;
+    }
+    .success-icon {
+        font-size: 5rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+        animation: pop-in 0.5s ease-out;
+    }
+    .success-title {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    .success-subtitle {
+        font-size: 1.1rem;
+        color: #6c757d;
+        max-width: 600px;
+        margin: 0 auto 2rem auto;
+    }
+    .separator {
+        border: 0;
+        height: 1px;
+        background: #e9ecef;
+        margin: 2rem 0;
+    }
+    .ticket-details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+    .metric-card-sm {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    .metric-card-sm .metric-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin: 0 0 5px 0;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .metric-card-sm .metric-value {
+        font-size: 1.5rem;
+        color: var(--mavi-dark-green, #00B894);
+        margin: 0 0 10px 0;
+        font-weight: 700;
+    }
+    .metric-card-sm small {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .next-steps {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        /* --- CORREÇÃO APLICADA AQUI --- */
+        margin-top: rem; /* Adiciona espaço acima dos botões */
+    }
+    @keyframes pop-in {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }

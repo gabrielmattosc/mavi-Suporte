@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitação Criada com Sucesso{% endblock %}
+
+{% block content %}
+<div class="container fade-in">
+    <div class="card success-card">
+        <div class="card-content" style="text-align: center;">
+            
+            <!-- Ícone de Sucesso -->
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+
+            <!-- Título e Mensagem -->
+            <h1 class="success-title">Solicitação Criada com Sucesso!</h1>
+            <p class="success-subtitle">
+                Sua solicitação foi recebida e já está na nossa fila de atendimento.
+                Enviámos um email de confirmação com todos os detalhes.
+            </p>
+
+            <hr class="separator">
+
+            <!-- Informações do Ticket -->
+            <div class="ticket-details-grid">
+                <div class="metric-card-sm">
+                    <p class="metric-label">ID do seu Ticket</p>
+                    <h2 class="metric-value">#{{ ticket_id }}</h2>
+                    <small>Guarde este ID para futuras consultas.</small>
+                </div>
+                <div class="metric-card-sm">
+                    <p class="metric-label">Posição na Fila</p>
+                    <h2 class="metric-value">{{ posicao }}º</h2>
+                    <small>Esta é a sua posição atual na fila de pendentes.</small>
+                </div>
+                <div class="metric-card-sm">
+                    <p class="metric-label">Status Atual</p>
+                    <h2 class="metric-value">
+                        <span class="status-badge status-pendente">Pendente</span>
+                    </h2>
+                    <small>Será notificado sobre qualquer alteração.</small>
+                </div>
+            </div>
+
+            <hr class="separator">
+
+            <!-- Próximos Passos -->
+            <div class="next-steps">
+                <a href="{{ url_for('ticket.view', ticket_id=ticket_id) }}" class="btn btn-primary">
+                    <i class="fas fa-eye"></i> Acompanhar meu Ticket
+                </a>
+                <a href="{{ url_for('ticket.new') }}" class="btn btn-secondary">
+                    <i class="fas fa-plus"></i> Criar Novo Ticket
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
