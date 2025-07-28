@@ -31,7 +31,8 @@ def create():
         # Validação
         if not all([nome, email, squad_leader, necessidade]) or not dispositivos_list or not aceita_termos:
             flash('Por favor, preencha todos os campos obrigatórios e aceite os termos.', 'error')
-            return render_template('new_ticket.html')
+            # Retorna os dados preenchidos para o formulário
+            return render_template('new_ticket.html', form_data=request.form)
         
         # Prepara dados do ticket
         dados_ticket = {
@@ -48,28 +49,22 @@ def create():
         ticket_id = ticket_service.criar_ticket(dados_ticket)
         
         if ticket_id:
-            # Obtém posição na fila
             posicao_fila = ticket_service.obter_posicao_fila(ticket_id)
             
-            # Envia emails se configurado
             if email_service.enabled:
-                email_service.enviar_confirmacao_ticket(
-                    email, ticket_id, posicao_fila, dados_ticket
-                )
-                email_service.enviar_notificacao_admin(
-                    ticket_id, dados_ticket
-                )
+                email_service.enviar_confirmacao_ticket(email, ticket_id, posicao_fila, dados_ticket)
+                email_service.enviar_notificacao_admin(ticket_id, dados_ticket)
             
             flash(f'Solicitação criada com sucesso! ID do ticket: #{ticket_id}', 'success')
             return redirect(url_for('ticket.success', ticket_id=ticket_id, posicao=posicao_fila))
         else:
             flash('Erro ao criar solicitação. Tente novamente.', 'error')
-            return render_template('new_ticket.html')
+            return render_template('new_ticket.html', form_data=request.form)
             
     except Exception as e:
         print(f"Erro ao criar ticket: {str(e)}")
         flash('Erro interno do servidor. Tente novamente.', 'error')
-        return render_template('new_ticket.html')
+        return render_template('new_ticket.html', form_data=request.form)
 
 @ticket_bp.route('/success')
 @login_required
@@ -83,11 +78,42 @@ def success():
     
     return render_template('ticket_success.html', ticket_id=ticket_id, posicao=posicao)
 
-@ticket_bp.route('/search')
+# --- FUNÇÃO DE PESQUISA ATUALIZADA ---
+@ticket_bp.route('/search', methods=['GET', 'POST'])
 @login_required
 def search():
-    """Página de consulta de ticket"""
-    return render_template('search_ticket.html')
+    """Página de consulta de ticket por ID ou Email, com paginação."""
+    if request.method == 'POST':
+        query = request.form.get('query', '').strip()
+        if not query:
+            flash('Por favor, insira um ID de ticket ou um email para pesquisar.', 'warning')
+            return redirect(url_for('ticket.search'))
+        # Redireciona para uma rota GET para ter URLs limpas e partilháveis
+        return redirect(url_for('ticket.search', query=query))
+
+    # A lógica abaixo é para o método GET
+    query = request.args.get('query')
+    if not query:
+        return render_template('search_ticket.html')
+
+    ticket_service = TicketService()
+    
+    # 1. Tenta buscar por ID de ticket primeiro
+    ticket_by_id = ticket_service.obter_ticket(query.upper())
+    if ticket_by_id:
+        return redirect(url_for('ticket.view', ticket_id=ticket_by_id['ticket_id']))
+
+    # 2. Se não for um ID, busca por email com paginação
+    page = request.args.get('page', 1, type=int)
+    tickets_pagination = ticket_service.listar_tickets_por_email_paginado(query.lower(), page=page, per_page=5)
+    
+    if tickets_pagination and tickets_pagination.items:
+        return render_template('search_results.html', pagination=tickets_pagination, query=query)
+
+    # 3. Se não encontrar nada
+    flash(f'Nenhum ticket encontrado para "{query}". Verifique os dados e tente novamente.', 'error')
+    return redirect(url_for('ticket.search'))
+
 
 @ticket_bp.route('/view/<ticket_id>')
 @login_required
@@ -97,17 +123,13 @@ def view(ticket_id):
     ticket = ticket_service.obter_ticket(ticket_id.upper())
     
     if not ticket:
-        flash('Ticket não encontrado. Verifique o ID e tente novamente.', 'error')
+        flash('Ticket não encontrado.', 'error')
         return redirect(url_for('ticket.search'))
     
-    # --- CORREÇÃO APLICADA AQUI ---
-    # Adiciona a posição na fila diretamente ao dicionário do ticket
-    # para que o template possa acedê-la facilmente.
     ticket['posicao_fila'] = 0
     if ticket.get('status') == 'Pendente':
         ticket['posicao_fila'] = ticket_service.obter_posicao_fila(ticket_id)
     
-    # Agora só precisamos de passar o objeto 'ticket'
     return render_template('view_ticket.html', ticket=ticket)
 
 @ticket_bp.route('/api/search', methods=['POST'])

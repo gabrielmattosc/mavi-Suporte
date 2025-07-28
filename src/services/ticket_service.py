@@ -67,7 +67,33 @@ class TicketService:
         except Exception as e:
             print(f"Erro ao listar tickets: {str(e)}")
             return []
-    
+
+    @staticmethod
+    def listar_tickets_por_email(email: str) -> List[Dict[str, Any]]:
+        """Lista todos os tickets associados a um email específico."""
+        try:
+            # A função 'ilike' é usada para fazer uma busca case-insensitive (ignora maiúsculas/minúsculas)
+            tickets = Ticket.query.filter(Ticket.email.ilike(email)).order_by(Ticket.data_criacao.desc()).all()
+            return [ticket.to_dict() for ticket in tickets]
+        except Exception as e:
+            print(f"Erro ao listar tickets por email: {str(e)}")
+            return []
+
+    @staticmethod
+    def listar_tickets_por_email_paginado(email: str, page: int, per_page: int = 5):
+        """
+        Lista tickets de um email de forma paginada.
+        Retorna um objeto de paginação do SQLAlchemy.
+        """
+        try:
+            pagination = Ticket.query.filter(Ticket.email.ilike(email))\
+                .order_by(Ticket.data_criacao.desc())\
+                .paginate(page=page, per_page=per_page, error_out=False)
+            return pagination
+        except Exception as e:
+            print(f"Erro ao paginar tickets por email: {str(e)}")
+            return None
+
     @staticmethod
     def atualizar_status(ticket_id: str, novo_status: str, observacao: str = None) -> bool:
         """Atualiza o status de um ticket"""
@@ -151,10 +177,6 @@ class TicketService:
         except Exception as e:
             print(f"Erro ao obter estatísticas: {str(e)}")
             return {
-                "total_tickets": 0,
-                "pendentes": 0,
-                "em_andamento": 0,
-                "concluidos": 0,
-                "dispositivos_mais_solicitados": {}
+                "total_tickets": 0, "pendentes": 0, "em_andamento": 0,
+                "concluidos": 0, "dispositivos_mais_solicitados": {}
             }
-
