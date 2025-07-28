@@ -13,15 +13,20 @@ class EmailService:
     """Serviço para envio de emails"""
     
     def __init__(self):
-        """Inicializa o serviço de email"""
-        self.smtp_server = "smtp.gmail.com"
-        self.smtp_port = 587
-        self.email_usuario = "gabrielmattoscosta4@gmail.com"
+        """Inicializa o serviço de email a partir de variáveis de ambiente."""
+        self.smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+        self.smtp_port = int(os.getenv("SMTP_PORT", 587))
+        
+        # Lê o e-mail do remetente e do admin do ficheiro .env
+        # Se não encontrar, usa o seu e-mail como padrão.
+        self.email_usuario = os.getenv("EMAIL_USER", "")
+        self.admin_email = os.getenv("ADMIN_EMAIL", "")
         self.email_senha = os.getenv("EMAIL_PASSWORD", "")
-        self.enabled = bool(self.email_senha)
-    
+        
+        self.enabled = bool(self.email_senha and self.email_usuario)
+
     def enviar_confirmacao_ticket(self, email_destino: str, ticket_id: str, 
-                                posicao_fila: int, dados_ticket: Dict[str, Any]) -> bool:
+                                  posicao_fila: int, dados_ticket: Dict[str, Any]) -> bool:
         """Envia email de confirmação para o usuário"""
         if not self.enabled:
             return False
@@ -75,21 +80,12 @@ class EmailService:
                             <p>{dados_ticket['necessidade']}</p>
                         </div>
                         
-                        <p><strong>⏱️ Próximos Passos:</strong></p>
-                        <ul>
-                            <li>Nossa equipe analisará sua solicitação</li>
-                            <li>Você receberá atualizações por email</li>
-                            <li>Use o ID #{ticket_id} para acompanhar o status</li>
-                        </ul>
-                        
-                        <p>Em caso de dúvidas, entre em contato conosco mencionando o ID do ticket.</p>
-                        
                         <p>Atenciosamente,<br><strong>Equipe Mavi Suporte</strong></p>
                     </div>
                     
                     <div class="footer">
                         <p>Este é um email automático. Por favor, não responda.</p>
-                        <p>© 2025 Mavi Click - Sistema de Suporte</p>
+                        <p>© {datetime.now().year} Mavi Click - Sistema de Suporte</p>
                     </div>
                 </div>
             </body>
@@ -108,7 +104,9 @@ class EmailService:
             return False
         
         try:
-            email_admin = "gabrielmattoscosta4@gmail.com"
+            # --- ALTERAÇÃO APLICADA AQUI ---
+            # Usa a variável self.admin_email lida do .env
+            email_admin = self.admin_email
             assunto = f"🔔 Novo Ticket #{ticket_id} - Mavi Suporte"
             
             corpo_html = f"""
@@ -122,9 +120,6 @@ class EmailService:
                     .header {{ background: linear-gradient(90deg, #00D4AA, #00B894); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
                     .content {{ background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }}
                     .ticket-info {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545; }}
-                    .priority-high {{ border-left-color: #dc3545; }}
-                    .priority-normal {{ border-left-color: #ffc107; }}
-                    .priority-urgent {{ border-left-color: #dc3545; background: #fff5f5; }}
                 </style>
             </head>
             <body>
@@ -137,23 +132,12 @@ class EmailService:
                     <div class="content">
                         <p>Um novo ticket foi criado no sistema:</p>
                         
-                        <div class="ticket-info priority-{dados_ticket['prioridade'].lower()}">
+                        <div class="ticket-info">
                             <h3>📋 Detalhes do Ticket #{ticket_id}</h3>
                             <p><strong>Solicitante:</strong> {dados_ticket['nome']}</p>
                             <p><strong>Email:</strong> {dados_ticket['email']}</p>
-                            <p><strong>Squad Leader:</strong> {dados_ticket['squad_leader']}</p>
                             <p><strong>Prioridade:</strong> {dados_ticket['prioridade']}</p>
-                            <p><strong>Data:</strong> {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
-                        </div>
-                        
-                        <div class="ticket-info">
-                            <h3>💻 Dispositivos/Serviços</h3>
-                            <p>{dados_ticket['dispositivos']}</p>
-                        </div>
-                        
-                        <div class="ticket-info">
-                            <h3>📝 Descrição</h3>
-                            <p>{dados_ticket['necessidade']}</p>
+                            <p><strong>Descrição:</strong> {dados_ticket['necessidade']}</p>
                         </div>
                         
                         <p><strong>Acesse o sistema para gerenciar este ticket.</strong></p>
@@ -173,7 +157,7 @@ class EmailService:
         """Método privado para enviar email"""
         try:
             msg = MIMEMultipart('alternative')
-            msg['From'] = self.email_usuario
+            msg['From'] = f"Mavi Suporte <{self.email_usuario}>"
             msg['To'] = email_destino
             msg['Subject'] = assunto
             
@@ -193,4 +177,3 @@ class EmailService:
 
 # Instância global do serviço
 email_service = EmailService()
-
