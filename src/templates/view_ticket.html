@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes do Ticket #{{ ticket.ticket_id }}{% endblock %}
+
+{% block content %}
+<div class="container fade-in">
+    <header>
+        <h1><i class="fas fa-ticket-alt"></i> Detalhes do Ticket #{{ ticket.ticket_id }}</h1>
+    </header>
+
+    {% if ticket %}
+    <!-- Mensagem de Posição na Fila -->
+    {% if ticket.status == 'Pendente' and ticket.posicao_fila > 0 %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <strong>Posição na Fila:</strong> Sua solicitação é a <strong>{{ ticket.posicao_fila }}ª</strong> na fila de atendimento.
+    </div>
+    {% endif %}
+
+    <div class="grid grid-2">
+        <!-- Coluna da Esquerda: Informações do Ticket -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-info-circle"></i> Informações do Ticket</h3>
+            </div>
+            <div class="card-content">
+                <p><strong>ID do Ticket:</strong> <span>#{{ ticket.ticket_id }}</span></p>
+                <p><strong>Status:</strong>
+                    <span class="status-badge status-{{ ticket.status.lower().replace(' ', '-').replace('ã', 'a') }}">
+                        {{ ticket.status }}
+                    </span>
+                </p>
+                <p><strong>Prioridade:</strong>
+                    <span class="status-badge priority-{{ ticket.prioridade.lower() }}">
+                        {{ ticket.prioridade }}
+                    </span>
+                </p>
+                <p><strong>Data de Criação:</strong> <span>{{ ticket.data_criacao.strftime('%d/%m/%Y %H:%M') }}</span></p>
+            </div>
+        </div>
+
+        <!-- Coluna da Direita: Dados do Solicitante -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-user"></i> Dados do Solicitante</h3>
+            </div>
+            <div class="card-content">
+                <p><strong>Nome:</strong> <span>{{ ticket.nome }}</span></p>
+                <p><strong>Email:</strong> <span>{{ ticket.email }}</span></p>
+                <p><strong>Squad Leader:</strong> <span>{{ ticket.squad_leader }}</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalhes da Solicitação -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-desktop"></i> Detalhes da Solicitação</h3>
+        </div>
+        <div class="card-content">
+            <h4>Dispositivos/Serviços:</h4>
+            <p>{{ ticket.dispositivos }}</p>
+            <hr>
+            <h4>Descrição da Necessidade:</h4>
+            <p>{{ ticket.necessidade }}</p>
+        </div>
+    </div>
+
+    <!-- Histórico de Observações -->
+    {% if ticket.observacoes %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-history"></i> Histórico de Observações</h3>
+        </div>
+        <div class="card-content">
+            <ul class="timeline">
+                {% for obs in ticket.observacoes %}
+                <li>
+                    <div class="timeline-date">{{ obs.data.strftime('%d/%m/%Y %H:%M') }}</div>
+                    <div class="timeline-content">
+                        <p>{{ obs.texto }}</p>
+                        {% if obs.status %}
+                        <small>Status alterado para: <strong>{{ obs.status }}</strong></small>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="error-message">
+        <p>O ticket solicitado não foi encontrado. Verifique o ID e tente novamente.</p>
+    </div>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('ticket.search') }}" class="btn btn-secondary">
+            <i class="fas fa-search"></i> Nova Consulta
+        </a>
+    </div>
+</div>
+{% endblock %}

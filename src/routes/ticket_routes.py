@@ -1,7 +1,7 @@
 """
 Rotas de tickets para o sistema Mavi Suporte
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from src.routes.auth_routes import login_required
 from src.services.ticket_service import TicketService
 from src.services.email_service import email_service
@@ -44,35 +44,23 @@ def create():
         }
         
         # Cria o ticket
-        ticket_id = TicketService.criar_ticket(dados_ticket)
+        ticket_service = TicketService()
+        ticket_id = ticket_service.criar_ticket(dados_ticket)
         
         if ticket_id:
             # Obtém posição na fila
-            posicao_fila = TicketService.obter_posicao_fila(ticket_id)
+            posicao_fila = ticket_service.obter_posicao_fila(ticket_id)
             
             # Envia emails se configurado
-            email_enviado = False
-            admin_notificado = False
-            
             if email_service.enabled:
-                email_enviado = email_service.enviar_confirmacao_ticket(
+                email_service.enviar_confirmacao_ticket(
                     email, ticket_id, posicao_fila, dados_ticket
                 )
-                admin_notificado = email_service.enviar_notificacao_admin(
+                email_service.enviar_notificacao_admin(
                     ticket_id, dados_ticket
                 )
             
-            # Mensagem de sucesso
             flash(f'Solicitação criada com sucesso! ID do ticket: #{ticket_id}', 'success')
-            
-            if email_service.enabled:
-                if email_enviado:
-                    flash('Email de confirmação enviado!', 'info')
-                else:
-                    flash('Não foi possível enviar o email de confirmação.', 'warning')
-            else:
-                flash('Configure a senha do email para ativar notificações automáticas.', 'info')
-            
             return redirect(url_for('ticket.success', ticket_id=ticket_id, posicao=posicao_fila))
         else:
             flash('Erro ao criar solicitação. Tente novamente.', 'error')
@@ -105,18 +93,22 @@ def search():
 @login_required
 def view(ticket_id):
     """Visualiza um ticket específico"""
-    ticket = TicketService.obter_ticket(ticket_id.upper())
+    ticket_service = TicketService()
+    ticket = ticket_service.obter_ticket(ticket_id.upper())
     
     if not ticket:
         flash('Ticket não encontrado. Verifique o ID e tente novamente.', 'error')
         return redirect(url_for('ticket.search'))
     
-    # Calcula posição na fila se pendente
-    posicao_fila = 0
-    if ticket['status'] == 'Pendente':
-        posicao_fila = TicketService.obter_posicao_fila(ticket_id)
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Adiciona a posição na fila diretamente ao dicionário do ticket
+    # para que o template possa acedê-la facilmente.
+    ticket['posicao_fila'] = 0
+    if ticket.get('status') == 'Pendente':
+        ticket['posicao_fila'] = ticket_service.obter_posicao_fila(ticket_id)
     
-    return render_template('view_ticket.html', ticket=ticket, posicao_fila=posicao_fila)
+    # Agora só precisamos de passar o objeto 'ticket'
+    return render_template('view_ticket.html', ticket=ticket)
 
 @ticket_bp.route('/api/search', methods=['POST'])
 @login_required
@@ -127,7 +119,8 @@ def api_search():
     if not ticket_id:
         return jsonify({'success': False, 'message': 'ID do ticket é obrigatório'})
     
-    ticket = TicketService.obter_ticket(ticket_id)
+    ticket_service = TicketService()
+    ticket = ticket_service.obter_ticket(ticket_id)
     
     if ticket:
         return jsonify({
@@ -139,4 +132,3 @@ def api_search():
             'success': False, 
             'message': 'Ticket não encontrado. Verifique o ID e tente novamente.'
         })
-

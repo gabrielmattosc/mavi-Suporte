@@ -674,3 +674,37 @@ body {
     }
 }
 
+/* --- Secção de Exportação --- */
+.export-section {
+    margin-top: 40px; /* Espaço acima da secção */
+}
+
+.export-section .card-content p {
+    margin-top: 0;
+    margin-bottom: 20px; /* Espaço entre o texto e o botão */
+    color: #6c757d;
+}
+
+/* Estilo para o botão de exportação */
+.btn-export {
+    background-color: #1D6F42; /* Um tom de verde escuro para Excel */
+    color: white;
+    padding: 12px 25px; /* Botão um pouco maior */
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px; /* Espaço entre o ícone e o texto */
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-export:hover {
+    background-color: #155724; /* Verde ainda mais escuro ao passar o rato */
+    color: white;
+    transform: translateY(-2px); /* Efeito de elevação */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}

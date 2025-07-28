@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="container fade-in">
-    <!-- Título da Página -->
     <header>
         <h1>📈 Relatórios e Análises</h1>
     </header>
@@ -21,7 +20,6 @@
                 </h2>
             </div>
             
-            <!-- vvvvv NOVO LAYOUT APLICADO AQUI vvvvv -->
             <div class="card-content">
                 <!-- Linha de Cima: Dois gráficos médios -->
                 <div class="charts-grid-2">
@@ -49,9 +47,26 @@
                     </div>
                 </div>
             </div>
-            <!-- ^^^^^ FIM DO NOVO LAYOUT ^^^^^ -->
-
         </div>
+
+        <!-- NOVA SEÇÃO DE EXPORTAÇÃO NO FINAL -->
+        <section class="export-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-download"></i>
+                        Exportar Dados
+                    </h2>
+                </div>
+                <div class="card-content" style="text-align: center;">
+                    <p>Faça o download de um relatório completo com todos os tickets em formato Excel.</p>
+                    <a href="{{ url_for('export.export_excel') }}" class="btn btn-export">
+                        <i class="fas fa-file-excel"></i> Extrair Relatório Completo (.xlsx)
+                    </a>
+                </div>
+            </div>
+        </section>
+
         {% endif %}
     {% endif %}
 </div>
