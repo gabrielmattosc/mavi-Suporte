@@ -15,10 +15,10 @@
             <p><strong>Email:</strong> {{ ticket.email }}</p>
             <p><strong>Status:</strong> <span class="status-badge status-{{ ticket.status.lower().replace(' ', '-') }}">{{ ticket.status }}</span></p>
             <p><strong>Prioridade:</strong> <span class="status-badge priority-{{ ticket.prioridade.lower() }}">{{ ticket.prioridade }}</span></p>
-            <p><strong>Categoria:</strong> {{ ticket.categoria }}</p>
+            <p><strong>Necessidade:</strong> {{ ticket.dispositivos }}</p>
             <p><strong>Data de Criação:</strong> {{ ticket.data_criacao.strftime('%d/%m/%Y %H:%M') }}</p>
             <p><strong>Descrição:</strong></p>
-            <p>{{ ticket.descricao }}</p>
+            <p>{{ ticket.necessidade }}</p>
         </div>
     </div>
 
