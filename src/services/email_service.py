@@ -153,6 +153,58 @@ class EmailService:
             print(f"Erro ao enviar notificação para admin: {str(e)}")
             return False
     
+    def enviar_atualizacao_status(self, email_destino: str, ticket_id: str, novo_status: str, observacao: str, nome: str) -> bool:
+        """Envia email quando o status do ticket é atualizado"""
+        if not self.enabled:
+            return False
+        try:
+            assunto = f"🔄 Atualização do Ticket #{ticket_id} - {novo_status}"
+            corpo_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset='UTF-8'>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: linear-gradient(90deg, #00D4AA, #00B894); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                    .content {{ background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }}
+                    .ticket-info {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00D4AA; }}
+                    .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+                    .status-badge {{ background: #28a745; color: white; padding: 5px 10px; border-radius: 15px; font-weight: bold; }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h1>🎫 Mavi Suporte</h1>
+                        <h2>Status do Ticket Atualizado</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Olá <strong>{nome}</strong>,</p>
+                        <p>Seu ticket foi atualizado com sucesso. Veja os detalhes abaixo:</p>
+                        <div class='ticket-info'>
+                            <h3>📋 Informações do Ticket</h3>
+                            <p><strong>ID do Ticket:</strong> #{ticket_id}</p>
+                            <p><strong>Status Atual:</strong> <span class='status-badge'>{novo_status}</span></p>
+                            <p><strong>Data da Atualização:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+                            <p><strong>Observação:</strong><br>{observacao}</p>
+                        </div>
+                        <p>Atenciosamente,<br><strong>Equipe Mavi Suporte</strong></p>
+                    </div>
+                    <div class='footer'>
+                        <p>Este é um email automático. Por favor, não responda.</p>
+                        <p>© {datetime.now().year} Mavi Click - Sistema de Suporte</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            return self._enviar_email(email_destino, assunto, corpo_html)
+        except Exception as e:
+            print(f"Erro ao enviar email de atualização de status: {str(e)}")
+            return False
+    
     def _enviar_email(self, email_destino: str, assunto: str, corpo_html: str) -> bool:
         """Método privado para enviar email"""
         try:

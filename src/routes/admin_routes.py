@@ -1,107 +1,115 @@
-"""
-Rotas de administração para o sistema Mavi Suporte
-"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from src.routes.auth_routes import admin_required
 from src.services.ticket_service import TicketService
 from src.services.auth_service import AuthService
-# --- NOVO: Importe o seu serviço de logs ---
-from src.services.log_service import LogService 
+from src.services.log_service import LogService
+from src.services.email_service import email_service
+from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/')
 @admin_required
 def index():
-    """Página principal de administração"""
-    # Filtros
     status_filter = request.args.get('status', 'Todos')
     prioridade_filter = request.args.get('prioridade', 'Todas')
-    
     filtros = {}
     if status_filter != 'Todos':
         filtros['status'] = status_filter
     if prioridade_filter != 'Todas':
         filtros['prioridade'] = prioridade_filter
-    
-    # Busca os dados necessários para as duas abas
+
     tickets = TicketService.listar_tickets(filtros)
     stats = TicketService.obter_estatisticas()
-    # --- NOVO: Busca os logs para a nova aba ---
     logs = LogService.listar_logs()
-    
+
     return render_template('admin_dashboard.html', 
                            tickets=tickets, 
                            stats=stats,
-                           logs=logs, # Envia os logs para o template
+                           logs=logs,
                            status_filter=status_filter,
                            prioridade_filter=prioridade_filter)
 
 @admin_bp.route('/ticket/<ticket_id>')
 @admin_required
 def view_ticket(ticket_id):
-    """Visualiza ticket específico (admin)"""
     ticket = TicketService.obter_ticket(ticket_id.upper())
-    
     if not ticket:
         flash('Ticket não encontrado.', 'error')
         return redirect(url_for('admin.index'))
-    
     return render_template('admin_ticket_detail.html', ticket=ticket)
 
 @admin_bp.route('/update-status', methods=['POST'])
 @admin_required
 def update_status():
-    """Atualiza status de um ticket"""
     ticket_id = request.form.get('ticket_id')
     novo_status = request.form.get('status')
     observacao = request.form.get('observacao', '')
-    
     if not ticket_id or not novo_status:
         flash('Dados incompletos para atualização.', 'error')
         return redirect(url_for('admin.index'))
-    
     sucesso = TicketService.atualizar_status(ticket_id, novo_status, observacao)
-    
     if sucesso:
-        # --- NOVO: Registra a ação no log ---
         LogService.registrar_log(
             usuario=session['user']['username'],
             acao="Atualização de Status",
             detalhes=f"Ticket #{ticket_id} para '{novo_status}'"
         )
+        ticket = TicketService.obter_ticket(ticket_id)
+        if ticket and 'email' in ticket:
+            try:
+                enviado = email_service.enviar_atualizacao_status(
+                    ticket['email'],
+                    ticket_id,
+                    novo_status,
+                    observacao,
+                    ticket['nome']
+                )
+                email_service.enviar_notificacao_admin(ticket_id, ticket)
+                if enviado:
+                    flash('E-mail de atualização enviado ao solicitante.', 'info')
+                else:
+                    flash('Falha ao enviar e-mail ao solicitante.', 'warning')
+            except Exception as e:
+                flash(f'Erro ao enviar e-mail: {str(e)}', 'warning')
         flash(f'Status do ticket #{ticket_id} atualizado para "{novo_status}".', 'success')
     else:
         flash('Erro ao atualizar status do ticket.', 'error')
-    
     return redirect(url_for('admin.view_ticket', ticket_id=ticket_id))
 
 @admin_bp.route('/api/update-status', methods=['POST'])
 @admin_required
 def api_update_status():
-    """API para atualizar status de ticket"""
     try:
         data = request.get_json()
         ticket_id = data.get('ticket_id')
         novo_status = data.get('status')
         observacao = data.get('observacao', '')
-        
         if not ticket_id or not novo_status:
             return jsonify({'success': False, 'message': 'Dados incompletos'})
-        
         sucesso = TicketService.atualizar_status(ticket_id, novo_status, observacao)
-        
         if sucesso:
-            # --- NOVO: Registra a ação no log também na API ---
             LogService.registrar_log(
                 usuario=session['user']['username'],
                 acao="Atualização de Status (API)",
                 detalhes=f"Ticket #{ticket_id} para '{novo_status}'"
             )
+            ticket = TicketService.obter_ticket(ticket_id)
+            if ticket and 'email' in ticket:
+                try:
+                    email_service.enviar_atualizacao_status(
+                        ticket['email'],
+                        ticket_id,
+                        novo_status,
+                        observacao,
+                        ticket['nome']
+                    )
+                    email_service.enviar_notificacao_admin(ticket_id, ticket)
+                except Exception as e:
+                    return jsonify({'success': True, 'message': f'Status atualizado, mas erro ao enviar e-mail: {str(e)}'})
             return jsonify({'success': True, 'message': 'Status atualizado com sucesso'})
         else:
             return jsonify({'success': False, 'message': 'Erro ao atualizar status'})
-            
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -116,54 +124,9 @@ def users():
 @admin_bp.route('/reports')
 @admin_required
 def reports():
-    """Relatórios administrativos"""
-    stats = TicketService.obter_estatisticas()
-    tickets = TicketService.listar_tickets()
-    
-    # Análise por período
-    from datetime import datetime, timedelta
-    from collections import defaultdict
-    
-    hoje = datetime.now()
-    ultimos_7_dias = hoje - timedelta(days=7)
-    ultimos_30_dias = hoje - timedelta(days=30)
-    
-    tickets_7_dias = []
-    tickets_30_dias = []
-    
-    for ticket in tickets:
-        data_criacao = ticket['data_criacao']
-        if isinstance(data_criacao, str):
-            try:
-                data_criacao = datetime.fromisoformat(data_criacao.replace('Z', '+00:00'))
-            except:
-                continue
-        
-        if data_criacao >= ultimos_7_dias:
-            tickets_7_dias.append(ticket)
-        if data_criacao >= ultimos_30_dias:
-            tickets_30_dias.append(ticket)
-    
-    # Estatísticas por período
-    stats_7_dias = {
-        'total': len(tickets_7_dias),
-        'pendentes': len([t for t in tickets_7_dias if t['status'] == 'Pendente']),
-        'em_andamento': len([t for t in tickets_7_dias if t['status'] == 'Em andamento']),
-        'concluidos': len([t for t in tickets_7_dias if t['status'] == 'Concluída'])
-    }
-    
-    stats_30_dias = {
-        'total': len(tickets_30_dias),
-        'pendentes': len([t for t in tickets_30_dias if t['status'] == 'Pendente']),
-        'em_andamento': len([t for t in tickets_30_dias if t['status'] == 'Em andamento']),
-        'concluidos': len([t for t in tickets_30_dias if t['status'] == 'Concluída'])
-    }
-    
-    return render_template('admin_reports.html',
-                           stats=stats,
-                           stats_7_dias=stats_7_dias,
-                           stats_30_dias=stats_30_dias,
-                           total_tickets=len(tickets))
+    """Configurações do sistema"""
+    flash('Funcionalidade de configurações em desenvolvimento.', 'info')
+    return redirect(url_for('admin.index'))
 
 @admin_bp.route('/settings')
 @admin_required
