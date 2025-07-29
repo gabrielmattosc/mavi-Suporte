@@ -1,10 +1,12 @@
 """
 Rotas de administração para o sistema Mavi Suporte
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from src.routes.auth_routes import admin_required
 from src.services.ticket_service import TicketService
 from src.services.auth_service import AuthService
+# --- NOVO: Importe o seu serviço de logs ---
+from src.services.log_service import LogService 
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -22,14 +24,18 @@ def index():
     if prioridade_filter != 'Todas':
         filtros['prioridade'] = prioridade_filter
     
+    # Busca os dados necessários para as duas abas
     tickets = TicketService.listar_tickets(filtros)
     stats = TicketService.obter_estatisticas()
+    # --- NOVO: Busca os logs para a nova aba ---
+    logs = LogService.listar_logs()
     
     return render_template('admin_dashboard.html', 
-                         tickets=tickets, 
-                         stats=stats,
-                         status_filter=status_filter,
-                         prioridade_filter=prioridade_filter)
+                           tickets=tickets, 
+                           stats=stats,
+                           logs=logs, # Envia os logs para o template
+                           status_filter=status_filter,
+                           prioridade_filter=prioridade_filter)
 
 @admin_bp.route('/ticket/<ticket_id>')
 @admin_required
@@ -58,6 +64,12 @@ def update_status():
     sucesso = TicketService.atualizar_status(ticket_id, novo_status, observacao)
     
     if sucesso:
+        # --- NOVO: Registra a ação no log ---
+        LogService.registrar_log(
+            usuario=session['user']['username'],
+            acao="Atualização de Status",
+            detalhes=f"Ticket #{ticket_id} para '{novo_status}'"
+        )
         flash(f'Status do ticket #{ticket_id} atualizado para "{novo_status}".', 'success')
     else:
         flash('Erro ao atualizar status do ticket.', 'error')
@@ -80,6 +92,12 @@ def api_update_status():
         sucesso = TicketService.atualizar_status(ticket_id, novo_status, observacao)
         
         if sucesso:
+            # --- NOVO: Registra a ação no log também na API ---
+            LogService.registrar_log(
+                usuario=session['user']['username'],
+                acao="Atualização de Status (API)",
+                detalhes=f"Ticket #{ticket_id} para '{novo_status}'"
+            )
             return jsonify({'success': True, 'message': 'Status atualizado com sucesso'})
         else:
             return jsonify({'success': False, 'message': 'Erro ao atualizar status'})
@@ -142,10 +160,10 @@ def reports():
     }
     
     return render_template('admin_reports.html',
-                         stats=stats,
-                         stats_7_dias=stats_7_dias,
-                         stats_30_dias=stats_30_dias,
-                         total_tickets=len(tickets))
+                           stats=stats,
+                           stats_7_dias=stats_7_dias,
+                           stats_30_dias=stats_30_dias,
+                           total_tickets=len(tickets))
 
 @admin_bp.route('/settings')
 @admin_required
@@ -153,4 +171,3 @@ def settings():
     """Configurações do sistema"""
     flash('Funcionalidade de configurações em desenvolvimento.', 'info')
     return redirect(url_for('admin.index'))
-

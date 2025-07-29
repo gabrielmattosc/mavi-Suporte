@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Mavi Suporte{% endblock %}
+
+{% block content %}
+<div class="container fade-in">
+    <header>
+        <h1><i class="fas fa-tachometer-alt"></i> Painel de Administração</h1>
+    </header>
+
+    <!-- Seção de Métricas -->
+    <section class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h2 class="metric-value">{{ stats.total_tickets }}</h2>
+            <p class="metric-label">Total de Tickets</p>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #ffc107;"><i class="fas fa-clock"></i></div>
+            <h2 class="metric-value">{{ stats.pendentes }}</h2>
+            <p class="metric-label">Pendentes</p>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #17a2b8;"><i class="fas fa-sync-alt"></i></div>
+            <h2 class="metric-value">{{ stats.em_andamento }}</h2>
+            <p class="metric-label">Em Andamento</p>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon" style="color: #28a745;"><i class="fas fa-check-circle"></i></div>
+            <h2 class="metric-value">{{ stats.concluidos }}</h2>
+            <p class="metric-label">Concluídos</p>
+        </div>
+    </section>
+
+    <!-- Card com Abas -->
+    <div class="card">
+        <div class="tabs">
+            <button class="tab-link active" onclick="openTab(event, 'tickets')">
+                <i class="fas fa-tasks"></i> Gerenciar Tickets
+            </button>
+            <button class="tab-link" onclick="openTab(event, 'logs')">
+                <i class="fas fa-history"></i> Logs de Atividade
+            </button>
+        </div>
+
+        <!-- Conteúdo da Aba de Tickets -->
+        <div id="tickets" class="tab-content" style="display: block;">
+            <div class="card-content">
+                <form method="GET" action="{{ url_for('admin.index') }}" class="filter-form">
+                    <div class="form-group">
+                        <label for="status">Filtrar por Status</label>
+                        <select name="status" id="status" class="form-control form-select">
+                            <option value="Todos" {% if status_filter == 'Todos' %}selected{% endif %}>Todos</option>
+                            <option value="Pendente" {% if status_filter == 'Pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="Em andamento" {% if status_filter == 'Em andamento' %}selected{% endif %}>Em andamento</option>
+                            <option value="Concluída" {% if status_filter == 'Concluída' %}selected{% endif %}>Concluída</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prioridade">Filtrar por Prioridade</label>
+                        <select name="prioridade" id="prioridade" class="form-control form-select">
+                            <option value="Todas" {% if prioridade_filter == 'Todas' %}selected{% endif %}>Todas</option>
+                            <option value="Normal" {% if prioridade_filter == 'Normal' %}selected{% endif %}>Normal</option>
+                            <option value="Alta" {% if prioridade_filter == 'Alta' %}selected{% endif %}>Alta</option>
+                            <option value="Urgente" {% if prioridade_filter == 'Urgente' %}selected{% endif %}>Urgente</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                </form>
+            </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome do Solicitante</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Data de Criação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if tickets %}
+                            {% for ticket in tickets %}
+                            <tr>
+                                <td><strong>#{{ ticket.ticket_id }}</strong></td>
+                                <td>{{ ticket.nome }}</td>
+                                <td><span class="status-badge status-{{ ticket.status.lower().replace(' ', '-').replace('ã', 'a') }}">{{ ticket.status }}</span></td>
+                                <td><span class="status-badge priority-{{ ticket.prioridade.lower() }}">{{ ticket.prioridade }}</span></td>
+                                <td>{{ ticket.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td><a href="{{ url_for('admin.view_ticket', ticket_id=ticket.ticket_id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i> Ver Detalhes</a></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="6" class="text-center">Nenhum ticket encontrado com os filtros aplicados.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Conteúdo da Nova Aba de Logs -->
+        <div id="logs" class="tab-content">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Usuário</th>
+                            <th>Ação</th>
+                            <th>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if logs %}
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                                <td>{{ log.usuario }}</td>
+                                <td>{{ log.acao }}</td>
+                                <td>{{ log.detalhes }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="4" class="text-center">Nenhuma atividade registrada.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+</script>
+{% endblock %}

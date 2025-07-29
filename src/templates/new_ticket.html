@@ -57,7 +57,7 @@
                     <label for="prioridade" class="form-label">
                         <i class="fas fa-exclamation-triangle"></i> Prioridade *
                     </label>
-                    <select id="prioridade" name="prioridade" class="form-control form-select" required>
+                    <select id="prioridade" name="prioridade" class="form-control" required>
                         <option value="Normal" {% if request.form.prioridade == 'Normal' %}selected{% endif %}>Normal</option>
                         <option value="Alta" {% if request.form.prioridade == 'Alta' %}selected{% endif %}>Alta</option>
                         <option value="Urgente" {% if request.form.prioridade == 'Urgente' %}selected{% endif %}>Urgente</option>

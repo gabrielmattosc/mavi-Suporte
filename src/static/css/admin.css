@@ -1,0 +1,124 @@
+/* ============================================= */
+/* --- ESTILOS PARA O DASHBOARD DO ADMIN --- */
+/* ============================================= */
+
+/* --- Métricas --- */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    text-align: center;
+    border-left: 4px solid #00D4AA;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.07);
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #00D4AA;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #333;
+}
+
+.metric-label {
+    margin: 0.5rem 0 0 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* --- Abas (Tabs) --- */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.tab-link {
+    background-color: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6c757d;
+    transition: all 0.2s ease-in-out;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Alinha com a borda de baixo */
+}
+
+.tab-link:hover {
+    color: #333;
+}
+
+.tab-link.active {
+    color: var(--mavi-green, #00D4AA);
+    border-bottom-color: var(--mavi-green, #00D4AA);
+}
+
+/* Esconde todo o conteúdo das abas por padrão */
+    .tab-content {
+        padding: 1.5rem;
+        display: none; 
+    }
+
+/* --- Formulário de Filtros --- */
+.filter-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.filter-form .form-group {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+/* --- Estilos Gerais para Tabelas --- */
+.table-container {
+    overflow-x: auto; /* Adiciona scroll horizontal em ecrãs pequenos */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.text-center {
+    text-align: center;
+}

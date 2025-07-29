@@ -9,6 +9,12 @@ import os
 
 load_dotenv()
 
+# --- ADICIONE ESTE TESTE ---
+print("--- Teste de .env ---")
+print(f"EMAIL_USER: {os.getenv('EMAIL_USER')}")
+print(f"EMAIL_PASSWORD: {'*' * len(os.getenv('EMAIL_PASSWORD', '')) if os.getenv('EMAIL_PASSWORD') else 'NÃO ENCONTRADA'}")
+print("---------------------")
+# --- FIM DO TESTE ---
 # Adiciona o diretório raiz ao path
 sys.path.insert(0, os.path.dirname(__file__))
 

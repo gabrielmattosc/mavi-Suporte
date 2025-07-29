@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from src.routes.auth_routes import login_required
 from src.services.ticket_service import TicketService
 from src.services.email_service import email_service
+from src.services.log_service import LogService
 
 ticket_bp = Blueprint('ticket', __name__)
 
@@ -44,11 +45,17 @@ def create():
             "prioridade": prioridade
         }
         
-        # Cria o ticket
         ticket_service = TicketService()
         ticket_id = ticket_service.criar_ticket(dados_ticket)
         
         if ticket_id:
+            # Registra a ação de criação do ticket no log
+            LogService.registrar_log(
+                usuario=session['user']['username'],
+                acao="Criação de Ticket",
+                detalhes=f"Ticket #{ticket_id} criado por {nome}."
+            )
+            
             posicao_fila = ticket_service.obter_posicao_fila(ticket_id)
             
             if email_service.enabled:
@@ -78,7 +85,6 @@ def success():
     
     return render_template('ticket_success.html', ticket_id=ticket_id, posicao=posicao)
 
-# --- FUNÇÃO DE PESQUISA ATUALIZADA ---
 @ticket_bp.route('/search', methods=['GET', 'POST'])
 @login_required
 def search():
