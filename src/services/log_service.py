@@ -3,7 +3,7 @@ Serviço de gerenciamento de logs para o sistema Mavi Suporte
 """
 from datetime import datetime
 from typing import List, Dict, Any
-# Importa apenas a instância 'db' no topo do ficheiro
+# Importa apenas a instância 'db' no topo do ficheiro para evitar ciclos
 from src.services.database_service import db
 
 class LogService:
@@ -14,8 +14,8 @@ class LogService:
         """
         Cria e salva uma nova entrada de log no banco de dados.
         """
-        # --- CORREÇÃO: Importa o modelo 'Log' dentro da função ---
-        # Isto quebra o ciclo de importação e garante que o modelo já existe.
+        # --- CORREÇÃO: Importa o modelo 'Log' DENTRO da função ---
+        # Isto quebra o ciclo de importação e garante que o modelo já foi carregado.
         from src.models.log import Log
         
         try:
@@ -36,7 +36,7 @@ class LogService:
         """
         Lista todos os logs do banco de dados, ordenados do mais recente para o mais antigo.
         """
-        # --- CORREÇÃO: Importa o modelo 'Log' dentro da função ---
+        # --- CORREÇÃO: Importa o modelo 'Log' DENTRO da função ---
         from src.models.log import Log
 
         try:

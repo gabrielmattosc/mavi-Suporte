@@ -29,34 +29,26 @@ def create():
         necessidade = request.form.get('necessidade', '').strip()
         aceita_termos = request.form.get('aceita_termos')
         
-        # Validação
         if not all([nome, email, squad_leader, necessidade]) or not dispositivos_list or not aceita_termos:
             flash('Por favor, preencha todos os campos obrigatórios e aceite os termos.', 'error')
-            # Retorna os dados preenchidos para o formulário
             return render_template('new_ticket.html', form_data=request.form)
         
-        # Prepara dados do ticket
         dados_ticket = {
-            "nome": nome,
-            "email": email,
-            "squad_leader": squad_leader,
+            "nome": nome, "email": email, "squad_leader": squad_leader,
             "dispositivos": ", ".join(dispositivos_list),
-            "necessidade": necessidade,
-            "prioridade": prioridade
+            "necessidade": necessidade, "prioridade": prioridade
         }
         
-        ticket_service = TicketService()
-        ticket_id = ticket_service.criar_ticket(dados_ticket)
+        ticket_id = TicketService.criar_ticket(dados_ticket)
         
         if ticket_id:
-            # Registra a ação de criação do ticket no log
             LogService.registrar_log(
                 usuario=session['user']['username'],
                 acao="Criação de Ticket",
                 detalhes=f"Ticket #{ticket_id} criado por {nome}."
             )
-            
-            posicao_fila = ticket_service.obter_posicao_fila(ticket_id)
+
+            posicao_fila = TicketService.obter_posicao_fila(ticket_id)
             
             if email_service.enabled:
                 email_service.enviar_confirmacao_ticket(email, ticket_id, posicao_fila, dados_ticket)
@@ -94,29 +86,23 @@ def search():
         if not query:
             flash('Por favor, insira um ID de ticket ou um email para pesquisar.', 'warning')
             return redirect(url_for('ticket.search'))
-        # Redireciona para uma rota GET para ter URLs limpas e partilháveis
         return redirect(url_for('ticket.search', query=query))
 
-    # A lógica abaixo é para o método GET
     query = request.args.get('query')
     if not query:
         return render_template('search_ticket.html')
 
     ticket_service = TicketService()
-    
-    # 1. Tenta buscar por ID de ticket primeiro
     ticket_by_id = ticket_service.obter_ticket(query.upper())
     if ticket_by_id:
         return redirect(url_for('ticket.view', ticket_id=ticket_by_id['ticket_id']))
 
-    # 2. Se não for um ID, busca por email com paginação
     page = request.args.get('page', 1, type=int)
     tickets_pagination = ticket_service.listar_tickets_por_email_paginado(query.lower(), page=page, per_page=5)
     
     if tickets_pagination and tickets_pagination.items:
         return render_template('search_results.html', pagination=tickets_pagination, query=query)
 
-    # 3. Se não encontrar nada
     flash(f'Nenhum ticket encontrado para "{query}". Verifique os dados e tente novamente.', 'error')
     return redirect(url_for('ticket.search'))
 
