@@ -122,6 +122,31 @@ class TicketService:
             print(f"Erro ao atualizar ticket: {str(e)}")
             return False
     
+    # --- NOVO MÉTODO PARA DETERMINAR A PRIORIDADE ---
+    @staticmethod
+    def determinar_prioridade(dispositivos_list: List[str]) -> str:
+        """
+        Determina a prioridade do ticket com base nos itens selecionados.
+        A lógica segue a regra: Urgente > Alta > Normal.
+        """
+        # Conjuntos de itens para cada nível de prioridade
+        prioridades_urgentes = {"Bases", "Banco de Dados"}
+        prioridades_altas = {"Software específico", "Licença de software", "Acesso ao Cubo"}
+
+        # Converte a lista de dispositivos para um conjunto para uma verificação mais eficiente
+        dispositivos_set = set(dispositivos_list)
+
+        # Verifica se algum item da lista de dispositivos está no conjunto de prioridades urgentes
+        if not prioridades_urgentes.isdisjoint(dispositivos_set):
+            return "Urgente"
+        
+        # Se não for urgente, verifica se é de prioridade alta
+        if not prioridades_altas.isdisjoint(dispositivos_set):
+            return "Alta"
+            
+        # Se não for nenhum dos acima, a prioridade é Normal
+        return "Normal"
+    
     @staticmethod
     def obter_posicao_fila(ticket_id: str) -> int:
         """Obtém a posição do ticket na fila de pendentes"""

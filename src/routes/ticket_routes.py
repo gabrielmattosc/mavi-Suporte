@@ -20,40 +20,44 @@ def new():
 @ticket_bp.route('/create', methods=['POST'])
 @login_required
 def create():
-    """Cria um novo ticket e atualiza o estoque"""
+    """Cria um novo ticket com prioridade automática e atualiza o estoque"""
     try:
         # Coleta dados do formulário
         nome = request.form.get('nome', '').strip()
         email = request.form.get('email', '').strip()
         squad_leader = request.form.get('squad_leader', '').strip()
-        prioridade = request.form.get('prioridade', 'Normal')
+        # A linha que pegava a prioridade do formulário foi removida
         dispositivos_list = request.form.getlist('dispositivos')
         necessidade = request.form.get('necessidade', '').strip()
         aceita_termos = request.form.get('aceita_termos')
         
-        if not all([nome, email, squad_leader, necessidade]) or not dispositivos_list or not aceita_termos:
-            flash('Por favor, preencha todos os campos obrigatórios e aceite os termos.', 'error')
+        if not all([nome, email, squad_leader, necessidade]) or not dispositivos_list:
             return render_template('new_ticket.html', form_data=request.form)
+        
+        # --- ALTERAÇÃO PRINCIPAL APLICADA AQUI ---
+        # A prioridade agora é determinada automaticamente pela lógica de negócio
+        prioridade = TicketService.determinar_prioridade(dispositivos_list)
         
         dados_ticket = {
             "nome": nome, "email": email, "squad_leader": squad_leader,
             "dispositivos": ", ".join(dispositivos_list),
-            "necessidade": necessidade, "prioridade": prioridade
+            "necessidade": necessidade, "prioridade": prioridade # Usa a prioridade automática
         }
         
         ticket_id = TicketService.criar_ticket(dados_ticket)
         
         if ticket_id:
-            # --- ATUALIZAÇÃO DE ESTOQUE APLICADA AQUI ---
+            # Atualiza o estoque dos itens solicitados
             for item in dispositivos_list:
                 sucesso_baixa = ProductService.decrementar_estoque(item)
                 if not sucesso_baixa:
-                    flash(f'Aviso: Não foi possível dar baixa no estoque do item "{item}". Verifique o inventário.', 'warning')
-            
+                    flash(f'Aviso: Esse item "{item}". Não é do estoque', 'warning')
+                    
+            # Registra a ação no log, agora com a prioridade automática
             LogService.registrar_log(
                 usuario=session['user']['username'],
                 acao="Criação de Ticket",
-                detalhes=f"Ticket #{ticket_id} criado por {nome}."
+                detalhes=f"Ticket #{ticket_id} (Prioridade: {prioridade}) criado por {nome}."
             )
             
             posicao_fila = TicketService.obter_posicao_fila(ticket_id)
