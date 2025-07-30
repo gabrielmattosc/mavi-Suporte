@@ -16,7 +16,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     text-align: center;
-    border-left: 4px solid #00D4AA;
+    border-left: 4px solid var(--mavi-green, #00D4AA);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
@@ -28,7 +28,7 @@
 .metric-icon {
     font-size: 2.5rem;
     margin-bottom: 1rem;
-    color: #00D4AA;
+    color: var(--mavi-green, #00D4AA);
 }
 
 .metric-value {
@@ -73,11 +73,10 @@
     border-bottom-color: var(--mavi-green, #00D4AA);
 }
 
-/* Esconde todo o conteúdo das abas por padrão */
-    .tab-content {
-        padding: 1.5rem;
-        display: none; 
-    }
+.tab-content {
+    display: none; 
+    padding: 1.5rem;
+}
 
 /* --- Formulário de Filtros --- */
 .filter-form {
@@ -93,32 +92,24 @@
     min-width: 200px;
 }
 
-/* --- Estilos Gerais para Tabelas --- */
-.table-container {
-    overflow-x: auto; /* Adiciona scroll horizontal em ecrãs pequenos */
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th, .table td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.table thead th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #495057;
-}
-
-.table tbody tr:hover {
-    background-color: #f1f1f1;
-}
-
-.text-center {
-    text-align: center;
-}
+/* Estilos para a aba de produtos para garantir a consistência */
+    #produtos .form-section,
+    #produtos .table-section {
+        margin-bottom: 2rem;
+    }
+    #produtos h4 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    #produtos .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    #produtos .separator {
+        margin: 2.5rem 0;
+        border: 0;
+        border-top: 1px solid #e9ecef;
+    }

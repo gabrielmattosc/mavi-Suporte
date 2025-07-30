@@ -14,6 +14,7 @@ db = SQLAlchemy()
 from ..models.user import User
 from ..models.ticket import Ticket, TicketObservacao
 from ..models.log import Log
+from ..models.produto import Produto
 
 def init_database(app):
     """Inicializa o banco de dados com a aplicação Flask"""
