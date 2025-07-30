@@ -6,6 +6,8 @@ from src.routes.auth_routes import login_required
 from src.services.ticket_service import TicketService
 from src.services.email_service import email_service
 from src.services.log_service import LogService
+# --- NOVO: Importa o novo serviço de produtos ---
+from src.services.product_service import ProductService
 
 ticket_bp = Blueprint('ticket', __name__)
 
@@ -18,7 +20,7 @@ def new():
 @ticket_bp.route('/create', methods=['POST'])
 @login_required
 def create():
-    """Cria um novo ticket"""
+    """Cria um novo ticket e atualiza o estoque"""
     try:
         # Coleta dados do formulário
         nome = request.form.get('nome', '').strip()
@@ -42,12 +44,18 @@ def create():
         ticket_id = TicketService.criar_ticket(dados_ticket)
         
         if ticket_id:
+            # --- ATUALIZAÇÃO DE ESTOQUE APLICADA AQUI ---
+            for item in dispositivos_list:
+                sucesso_baixa = ProductService.decrementar_estoque(item)
+                if not sucesso_baixa:
+                    flash(f'Aviso: Não foi possível dar baixa no estoque do item "{item}". Verifique o inventário.', 'warning')
+            
             LogService.registrar_log(
                 usuario=session['user']['username'],
                 acao="Criação de Ticket",
                 detalhes=f"Ticket #{ticket_id} criado por {nome}."
             )
-
+            
             posicao_fila = TicketService.obter_posicao_fila(ticket_id)
             
             if email_service.enabled:
