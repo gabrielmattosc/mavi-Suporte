@@ -34,7 +34,6 @@ def create():
         if not all([nome, email, squad_leader, necessidade]) or not dispositivos_list:
             return render_template('new_ticket.html', form_data=request.form)
         
-        # --- ALTERAÇÃO PRINCIPAL APLICADA AQUI ---
         # A prioridade agora é determinada automaticamente pela lógica de negócio
         prioridade = TicketService.determinar_prioridade(dispositivos_list)
         

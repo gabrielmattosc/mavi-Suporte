@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Descrição - {{ produto.nome }}{% endblock %}
+
+{% block content %}
+<div class="container fade-in">
+    <header>
+        <h1><i class="fas fa-history"></i> Histórico de Descrição</h1>
+        <p class="subtitle">Produto: <strong>{{ produto.nome }}</strong></p>
+    </header>
+
+    <!-- Card para a Descrição Atual com Botão de Editar e Reverter -->
+    <div class="card">
+        <div class="card-header with-button">
+            <h3 class="card-title">Descrição Atual</h3>
+            <!-- vvvvv CORREÇÃO APLICADA AQUI vvvvv -->
+            <div class="action-buttons">
+                <button type="button" class="btn btn-sm btn-warning" 
+                        onclick="openEditCurrentModal('{{ produto.id }}', '{{ produto.descricao or '' }}')">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <form action="{{ url_for('admin.revert_description', product_id=produto.id) }}" method="POST" onsubmit="return confirm('Tem a certeza que quer reverter a descrição atual para a versão anterior? Esta ação também irá reverter o estoque.');">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="fas fa-undo"></i> Reverter
+                    </button>
+                </form>
+            </div>
+            <!-- ^^^^^ FIM DA CORREÇÃO ^^^^^ -->
+        </div>
+        <div class="card-content">
+            <p>{{ produto.descricao or "Nenhuma descrição atual fornecida." }}</p>
+        </div>
+    </div>
+
+    <!-- Card para o Histórico de Descrições -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Descrições Anteriores</h3>
+        </div>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Data da Modificação</th>
+                        <th>Modificado Por</th>
+                        <th>Descrição Antiga</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if produto.historico_descricao %}
+                        {% for historico in produto.historico_descricao %}
+                        <tr>
+                            <td>{{ historico.data_modificacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ historico.modificado_por }}</td>
+                            <td>{{ historico.descricao_antiga }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button type="button" class="btn btn-sm btn-warning" 
+                                            onclick="openEditHistoryModal('{{ historico.id }}', '{{ produto.id }}', '{{ historico.descricao_antiga }}')">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <form action="{{ url_for('admin.delete_description_history', history_id=historico.id) }}" method="POST" onsubmit="return confirm('Tem a certeza que quer apagar esta entrada do histórico? Esta ação irá reverter o estoque.');">
+                                        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> Apagar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="4" class="text-center">Nenhuma descrição anterior registada.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('admin.index', tab='produtos') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<!-- MODAL PARA EDITAR DESCRIÇÃO ATUAL -->
+<div id="editCurrentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Descrição Atual</h3>
+            <span class="close-button" onclick="closeEditCurrentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editCurrentForm" method="POST">
+                <div class="form-group">
+                    <label for="modal_current_descricao">Nova Descrição</label>
+                    <textarea id="modal_current_descricao" name="descricao" class="form-control" rows="4" required></textarea>
+                </div>
+                <div class="form-actions" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditCurrentModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA EDITAR DESCRIÇÃO DO HISTÓRICO -->
+<div id="editHistoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Descrição do Histórico</h3>
+            <span class="close-button" onclick="closeEditHistoryModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editHistoryForm" method="POST">
+                <input type="hidden" name="produto_id" id="modal_history_produto_id">
+                <div class="form-group">
+                    <label for="modal_history_descricao">Descrição do Histórico</label>
+                    <textarea id="modal_history_descricao" name="descricao_historico" class="form-control" rows="4" required></textarea>
+                </div>
+                <div class="form-actions" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditHistoryModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // --- SCRIPTS PARA OS NOVOS MODAIS DE EDIÇÃO ---
+    function openEditCurrentModal(productId, currentDescription) {
+        const form = document.getElementById('editCurrentForm');
+        form.action = `/admin/product/${productId}/edit-description`;
+        document.getElementById('modal_current_descricao').value = currentDescription;
+        document.getElementById('editCurrentModal').style.display = 'block';
+    }
+
+    function closeEditCurrentModal() {
+        document.getElementById('editCurrentModal').style.display = 'none';
+    }
+
+    function openEditHistoryModal(historyId, productId, historyDescription) {
+        const form = document.getElementById('editHistoryForm');
+        form.action = `/admin/product/history/edit/${historyId}`;
+        document.getElementById('modal_history_produto_id').value = productId;
+        document.getElementById('modal_history_descricao').value = historyDescription;
+        document.getElementById('editHistoryModal').style.display = 'block';
+    }
+
+    function closeEditHistoryModal() {
+        document.getElementById('editHistoryModal').style.display = 'none';
+    }
+
+    // Fecha os modais se o usuário clicar fora do conteúdo
+    window.addEventListener('click', function(event) {
+        const currentModal = document.getElementById('editCurrentModal');
+        const historyModal = document.getElementById('editHistoryModal');
+        if (event.target == currentModal) {
+            currentModal.style.display = "none";
+        }
+        if (event.target == historyModal) {
+            historyModal.style.display = "none";
+        }
+    });
+</script>
+{% endblock %}

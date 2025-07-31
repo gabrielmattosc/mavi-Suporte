@@ -113,3 +113,97 @@
         border: 0;
         border-top: 1px solid #e9ecef;
     }
+
+    /* Estilos para o Modal de Descrição (mantidos caso outra página os use) */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.5); 
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; 
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        animation: slide-down 0.3s ease-out;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: var(--mavi-dark-green, #00B894);
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        line-height: 1.6;
+    }
+
+    @keyframes slide-down {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Estilo para alinhar o título e o botão no cabeçalho do card */
+    .card-header.with-button {
+        display: flex;
+        justify-content: space-between; /* Alinha os itens nas extremidades */
+        align-items: center; /* Alinha verticalmente no centro */
+    }
+
+    /* Container para alinhar os botões */
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Empurra os botões para as extremidades */
+        }
+
+/* Estilo para alinhar os botões no cabeçalho do card */
+    .card-header.with-button {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    /* Container para alinhar múltiplos botões */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem; /* Espaço entre os botões */
+    }

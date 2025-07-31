@@ -173,78 +173,105 @@
             </div>
         </div>
 
-        <!-- vvvvv ABA DE PRODUTOS CORRIGIDA vvvvv -->
+                <!-- Aba: Gerenciar Produtos -->
         <div id="produtos" class="tab-content">
             <div class="card-content">
                 <!-- Seção de Cadastro -->
-                <div class="product-section">
-                    <h4><i class="fas fa-plus-circle"></i> Cadastrar Novo Produto</h4>
-                    <form method="POST" action="{{ url_for('admin.cadastrar_produto') }}">
-                        <div class="grid grid-3">
-                            <div class="form-group">
-                                <label for="nome_produto">Nome do Produto</label>
-                                <div class="select-wrapper">
-                                    <select id="nome_produto" name="nome" class="form-control form-select" required>
-                                        {% set dispositivos_opcoes = ["Notebook/Laptop","Desktop/PC","Teclado","Mouse","Headset/Fone","Webcam","Licença de software"] %}
-                                        <option value="" disabled selected>Selecione um produto</option>
-                                        {% for dispositivo in dispositivos_opcoes %}
-                                            <option value="{{ dispositivo }}">{{ dispositivo }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="quantidade_produto">Quantidade</label>
-                                <input type="number" id="quantidade_produto" name="quantidade" class="form-control" required min="1" value="1">
-                            </div>
-                             <div class="form-group">
-                                <label for="descricao_produto">Descrição</label>
-                                <textarea id="descricao_produto" name="descricao" class="form-control" rows="1" placeholder="Ex: Modelo, especificações..."></textarea>
+                <h4><i class="fas fa-plus-circle"></i> Cadastrar Novo Produto</h4>
+                <form method="POST" action="{{ url_for('admin.cadastrar_produto') }}">
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label for="nome_produto">Nome do Produto</label>
+                            <div class="select-wrapper">
+                                <select id="nome_produto" name="nome" class="form-control form-select" required>
+                                    {% set dispositivos_opcoes = ["Notebook/Laptop","Desktop/PC","Teclado","Mouse","Headset/Fone","Webcam","Licença de software"] %}
+                                    <option value="" disabled selected>Selecione um produto</option>
+                                    {% for dispositivo in dispositivos_opcoes %}
+                                        <option value="{{ dispositivo }}">{{ dispositivo }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Cadastrar Produto</button>
+                        <div class="form-group">
+                            <label for="quantidade_produto">Quantidade</label>
+                            <input type="number" id="quantidade_produto" name="quantidade" class="form-control" required min="1" value="1">
                         </div>
-                    </form>
-                </div>
+                         <div class="form-group">
+                            <label for="descricao_produto">Descrição</label>
+                            <textarea id="descricao_produto" name="descricao" class="form-control" rows="1" placeholder="Ex: Modelo, especificações..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Cadastrar Produto</button>
+                    </div>
+                </form>
 
                 <hr class="separator">
 
-                <!-- Seção da Tabela -->
-                <div class="product-section">
-                    <h4><i class="fas fa-boxes"></i> Produtos Cadastrados</h4>
-                    <div class="table-container">
-                        <table class="table">
-                            <thead>
+       <!-- Seção da Tabela -->
+                <h4><i class="fas fa-boxes"></i> Produtos Cadastrados</h4>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Quantidade</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if produtos %}
+                                {% for produto in produtos %}
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Nome</th>
-                                    <th>Quantidade</th>
-                                    <th>Descrição</th>
-                                    <th>Data Cadastro</th>
+                                    <td>{{ produto.id }}</td>
+                                    <td>{{ produto.nome }}</td>
+                                    <td>{{ produto.quantidade }}</td>
+                                    <td>
+                                        <!-- vvvvv CORREÇÃO APLICADA AQUI vvvvv -->
+                                        <div class="action-buttons">
+                                            <a href="{{ url_for('admin.view_product_history', product_id=produto.id) }}" class="btn btn-sm btn-info btn-history">
+                                                <i class="fas fa-history"></i> Histórico
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-warning btn-edit-qty"
+                                                    onclick="openQuantityModal('{{ produto.id }}', '{{ produto.nome }}', '{{ produto.quantidade }}')">
+                                                <i class="fas fa-edit"></i> Editar Qtd.
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {% if produtos %}
-                                    {% for produto in produtos %}
-                                    <tr>
-                                        <td>{{ produto.id }}</td>
-                                        <td>{{ produto.nome }}</td>
-                                        <td>{{ produto.quantidade }}</td>
-                                        <td>{{ produto.descricao }}</td>
-                                        <td>{{ produto.data_cadastro.strftime('%d/%m/%Y') }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr><td colspan="4" class="text-center">Nenhum produto cadastrado.</td></tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="4" class="text-center">Nenhum produto cadastrado.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-        <!-- ^^^^^ FIM DA ABA DE PRODUTOS ^^^^^ -->
+    </div>
+</div>
+
+<!-- Modal para Editar Quantidade -->
+<div id="quantityModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="quantityModalTitle">Editar Quantidade</h3>
+            <span class="close-button" onclick="closeQuantityModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('admin.update_product_quantity') }}">
+                <input type="hidden" name="produto_id" id="modal_produto_id">
+                <div class="form-group">
+                    <label for="modal_nova_quantidade">Nova Quantidade</label>
+                    <input type="number" id="modal_nova_quantidade" name="quantidade" class="form-control" required min="0">
+                </div>
+                <div class="form-actions" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeQuantityModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -266,25 +293,54 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-         const activeTab = "{{ active_tab }}";
-         if (activeTab) {
-             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-             document.getElementById(activeTab).style.display = 'block';
-             document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('active'));
-             const button = Array.from(document.getElementsByClassName('tab-link')).find(btn => btn.getAttribute('onclick').includes(activeTab));
-             if (button) button.classList.add('active');
-         }
-         const scrollPos = parseInt("{{ scroll_position }}") || 0;
-         window.scrollTo({ top: scrollPos, behavior: 'instant' });
-     });
-     document.querySelectorAll('form').forEach(form => {
-         form.addEventListener('submit', () => {
-             const scrollInput = document.createElement('input');
-             scrollInput.type = 'hidden';
-             scrollInput.name = 'scroll';
-             scrollInput.value = window.scrollY;
-             form.appendChild(scrollInput);
-         });
-     });
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || 'tickets';
+        const scrollPos = parseInt(urlParams.get('scroll')) || 0;
+
+        const tabButton = Array.from(document.getElementsByClassName('tab-link')).find(btn => btn.getAttribute('onclick').includes(`'${activeTab}'`));
+        if (tabButton) {
+            openTab({ currentTarget: tabButton }, activeTab);
+        }
+
+        window.scrollTo({ top: scrollPos, behavior: 'instant' });
+
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                const activeTabInput = document.querySelector('.tab-link.active');
+                if (activeTabInput) {
+                    const tabInput = document.createElement('input');
+                    tabInput.type = 'hidden';
+                    tabInput.name = 'tab';
+                    tabInput.value = activeTabInput.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    form.appendChild(tabInput);
+                }
+
+                const scrollInput = document.createElement('input');
+                scrollInput.type = 'hidden';
+                scrollInput.name = 'scroll';
+                scrollInput.value = window.scrollY;
+                form.appendChild(scrollInput);
+            });
+        });
+    });
+    // --- SCRIPT PARA O MODAL DE QUANTIDADE ---
+    function openQuantityModal(productId, productName, currentQuantity) {
+        document.getElementById('quantityModalTitle').innerText = 'Editar Quantidade para: ' + productName;
+        document.getElementById('modal_produto_id').value = productId;
+        document.getElementById('modal_nova_quantidade').value = currentQuantity;
+        document.getElementById('quantityModal').style.display = 'block';
+    }
+
+    function closeQuantityModal() {
+        document.getElementById('quantityModal').style.display = 'none';
+    }
+
+    // Fecha o modal se o usuário clicar fora do conteúdo
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('quantityModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    });
 </script>
 {% endblock %}
