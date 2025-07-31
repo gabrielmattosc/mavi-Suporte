@@ -117,7 +117,34 @@ class ProductService:
             db.session.rollback()
             print(f"Erro ao atualizar quantidade do produto: {str(e)}")
             return False
-        
+
+    @staticmethod
+    def decrementar_estoque(nome_produto: str, quantidade_a_remover: int = 1) -> bool:
+        """
+        Decrementa a quantidade de um produto no estoque.
+        Retorna True se a operação for bem-sucedida, False caso contrário (ex: sem estoque).
+        """
+        try:
+            produto = Produto.query.filter_by(nome=nome_produto).first()
+
+            if not produto:
+                print(f"Aviso: Tentativa de baixar estoque de produto não cadastrado: {nome_produto}")
+                return False # Produto não existe no inventário
+
+            if produto.quantidade < quantidade_a_remover:
+                print(f"Aviso: Estoque insuficiente para {nome_produto}. Disponível: {produto.quantidade}, Solicitado: {quantidade_a_remover}")
+                # Mesmo sem estoque, não retornamos False para não impedir a criação do ticket,
+                # mas a falha será notificada ao admin.
+                return False 
+
+            produto.quantidade -= quantidade_a_remover
+            db.session.commit()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"Erro ao decrementar estoque de {nome_produto}: {str(e)}")
+            return False
+
     @staticmethod
     def reverter_descricao_atual(produto_id: int, modificado_por: str) -> bool:
         """
